@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
 import '../utils/colors.dart';
@@ -16,9 +17,55 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
   final TextEditingController _schoolEmailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  final AuthService _authService = AuthService(); // <-- FIX: Added AuthService instance
   bool _agreeToTerms = false;
+  bool _isLoading = false; // <-- FIX: Added isLoading state
   String? _selectedGrade;
   String? _selectedSubject;
+
+  // FIX: Added signup logic
+  Future<void> _createTeacherAccount() async {
+    final String fullName = _fullNameController.text.trim();
+    final String email = _schoolEmailController.text.trim();
+    final String password = _passwordController.text;
+    final String confirm = _confirmPasswordController.text;
+
+    if (fullName.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty || _selectedGrade == null || _selectedSubject == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields.')),
+      );
+      return;
+    }
+    if (password != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match.')),
+      );
+      return;
+    }
+    if (!_agreeToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must agree to the Terms and Privacy Policy.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final user = await _authService.signUpWithEmailAndPassword(email, password, fullName);
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+    if (user != null) {
+      // Here you would also save teacher-specific data (school, grade, subject) to Firestore/DB
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created. Please check your email to verify.')),
+      );
+      Navigator.pushNamedAndRemoveUntil(context, '/verify', (route) => false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign up failed. The email might be in use or invalid.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +128,7 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
                     value: _selectedGrade,
                     onChanged: (String? newValue) {
                       setState(() {
-                        _selectedGrade = newValue!;
+                        _selectedGrade = newValue;
                       });
                     },
                     items: <String>['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4']
@@ -106,7 +153,7 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
                     value: _selectedSubject,
                     onChanged: (String? newValue) {
                       setState(() {
-                        _selectedSubject = newValue!;
+                        _selectedSubject = newValue;
                       });
                     },
                     items: <String>['Math', 'Science', 'English', 'History']
@@ -152,10 +199,8 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
                 ),
                 const SizedBox(height: 20),
                 CustomButton(
-                  text: 'Create Teacher Account',
-                  onPressed: () {
-                    // Add teacher account creation logic
-                  },
+                  text: _isLoading ? 'Creating Account...' : 'Create Teacher Account', // <-- FIX: Updated text
+                  onPressed: _isLoading ? null : _createTeacherAccount, // <-- FIX: Wired up onPressed
                 ),
                  const SizedBox(height: 20),
                 Row(

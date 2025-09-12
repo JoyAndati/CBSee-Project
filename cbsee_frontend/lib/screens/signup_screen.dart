@@ -18,6 +18,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _agreeToTerms = false;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -96,18 +97,64 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 const SizedBox(height: 20),
                 CustomButton(
-                  text: 'Sign Up',
-                  onPressed: () async {
-                    if (_passwordController.text == _confirmPasswordController.text && _agreeToTerms) {
-                      await _authService.signUpWithEmailAndPassword(
-                        _emailController.text,
-                        _passwordController.text,
-                        _nameController.text,
-                      );
-                      Navigator.pushNamed(context, '/verify');
-                    }
-                  },
+                  text: _isLoading ? 'Creating account...' : 'Sign Up',
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          final String name = _nameController.text.trim();
+                          final String email = _emailController.text.trim();
+                          final String password = _passwordController.text;
+                          final String confirm = _confirmPasswordController.text;
+
+                          if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please fill in all fields.')),
+                            );
+                            return;
+                          }
+                          if (password != confirm) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Passwords do not match.')),
+                            );
+                            return;
+                          }
+                          if (!_agreeToTerms) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('You must agree to the Terms and Privacy Policy.')),
+                            );
+                            return;
+                          }
+
+                          setState(() => _isLoading = true);
+                          final user = await _authService.signUpWithEmailAndPassword(email, password, name);
+                          setState(() => _isLoading = false);
+
+                          if (!mounted) return;
+                          if (user != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Account created. Verification email sent.')),
+                            );
+                            Navigator.pushNamed(context, '/verify');
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Sign up failed. Please try again.')),
+                            );
+                          }
+                        },
                 ),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('OR', style: TextStyle(color: Colors.grey)),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 16),
+               
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
