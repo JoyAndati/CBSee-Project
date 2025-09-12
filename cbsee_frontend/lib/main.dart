@@ -43,6 +43,7 @@ class MyApp extends StatelessWidget {
         '/teacher_signup': (context) => const TeacherSignupScreen(),
         // Define other routes as needed
       },
+      debugShowCheckedModeBanner: false,
     );
   }
 }
