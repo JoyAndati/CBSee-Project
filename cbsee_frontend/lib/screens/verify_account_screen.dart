@@ -2,9 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../widgets/custom_button.dart';
 import '../utils/colors.dart';
+import '../services/auth_service.dart';
 
-class VerifyAccountScreen extends StatelessWidget {
+class VerifyAccountScreen extends StatefulWidget {
   const VerifyAccountScreen({super.key});
+
+  @override
+  State<VerifyAccountScreen> createState() => _VerifyAccountScreenState();
+}
+
+class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+
+  Future<void> _resendEmail() async {
+    setState(() => _isLoading = true);
+    final bool sent = await _authService.sendVerificationEmail();
+    setState(() => _isLoading = false);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(sent ? 'Verification email sent.' : 'Failed to send verification email.')),
+    );
+  }
+
+  Future<void> _checkVerified() async {
+    setState(() => _isLoading = true);
+    final bool verified = await _authService.reloadAndCheckEmailVerified();
+    setState(() => _isLoading = false);
+    if (!mounted) return;
+    if (verified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email verified!')),
+      );
+      Navigator.pushReplacementNamed(context, '/login');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not verified yet. Please check your inbox.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,51 +58,27 @@ class VerifyAccountScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: secondaryColor),
                 ),
                 const SizedBox(height: 30),
-                const Icon(Icons.lock_open_outlined, size: 60, color: primaryColor),
+                const Icon(Icons.mark_email_unread_outlined, size: 60, color: primaryColor),
                 const SizedBox(height: 20),
                 const Text(
-                  'Verify Your Account',
+                  'Verify Your Email',
                   style: TextStyle(fontSize: 24, color: secondaryColor),
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'Please enter the 6-digit code sent to your email or phone.',
+                  'We have sent a verification link to your email address. Please click the link to verify your account.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
                 ),
-                const SizedBox(height: 40),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(
-                    6,
-                    (index) => SizedBox(
-                      width: 50,
-                      child: TextField(
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          LengthLimitingTextInputFormatter(1),
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 24),
                 TextButton(
-                  onPressed: () {},
-                  child: const Text('Resend Code', style: TextStyle(color: primaryColor)),
+                  onPressed: _isLoading ? null : () { _resendEmail(); },
+                  child: const Text('Resend Email', style: TextStyle(color: primaryColor)),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 CustomButton(
-                  text: 'Verify',
-                  onPressed: () {
-                    // Add verification logic
-                  },
+                  text: _isLoading ? 'Please wait...' : 'I Verified, Continue',
+                  onPressed: _isLoading ? null : () { _checkVerified(); },
                   color: const Color(0xFF00E676),
                 ),
               ],

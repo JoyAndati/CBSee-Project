@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "900349856495",
+    "project_id": "cbsee-1f435",
+    "storage_bucket": "cbsee-1f435.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:900349856495:android:bfffed3cbf6d26c10fe91a",
+        "android_client_info": {
+          "package_name": "com.example.cbsee_frontend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "900349856495-42ovc4r2vtfjff19s2taqpq1pvtam9ap.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdQrLKESk6R25brZNxrmNTNA2rUyOAtu8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "900349856495-42ovc4r2vtfjff19s2taqpq1pvtam9ap.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
