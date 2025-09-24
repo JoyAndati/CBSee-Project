@@ -143,9 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Login successful!')),
                       );
-                      // Navigate to main app or dashboard
-                      // TODO: Replace with your main app route
-                      Navigator.pushReplacementNamed(context, '/home');
+                      // Navigate to camera/scan page
+                      Navigator.pushReplacementNamed(context, '/scan');
                     } else if (result['needsVerification'] == true) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -188,9 +187,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 //         ScaffoldMessenger.of(context).showSnackBar(
                 //           const SnackBar(content: Text('Google sign-in successful!')),
                 //         );
-                //         // Navigate to main app or dashboard
-                //         // TODO: Replace with your main app route
-                //         Navigator.pushReplacementNamed(context, '/home');
+                //         // Navigate to camera/scan page
+                //         Navigator.pushReplacementNamed(context, '/scan');
                 //       } else {
                 //         ScaffoldMessenger.of(context).showSnackBar(
                 //           const SnackBar(content: Text('Google sign-in failed. Please try again.')),

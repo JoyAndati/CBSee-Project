@@ -5,6 +5,9 @@ import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/verify_account_screen.dart';
 import 'screens/teacher_signup_screen.dart';
+import 'screens/scan_screen.dart';
+import 'screens/history_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +44,9 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignupScreen(),
         '/verify': (context) => const VerifyAccountScreen(),
         '/teacher_signup': (context) => const TeacherSignupScreen(),
+        '/scan': (context) => const ScanScreen(),
+        '/history': (context) => const HistoryScreen(),
+        '/settings': (context) => const SettingsScreen(),
         // Define other routes as needed
       },
       debugShowCheckedModeBanner: false,
