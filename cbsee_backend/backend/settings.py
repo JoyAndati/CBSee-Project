@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-(0xd+4kqz42f2p)p7r+f1c#etmjq)big7d@o&t^!=8h0-pfrq#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -153,3 +153,5 @@ cred = credentials.Certificate(os.path.join(BASE_DIR, "firebase/cbsee-backend.js
 # Avoid re-initializing if already initialized
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
+
+CORS_ALLOW_ALL_ORIGINS = True
