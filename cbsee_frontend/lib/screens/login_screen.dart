@@ -216,6 +216,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: const Text('Sign Up', style: TextStyle(color: primaryColor)),
                     ),
+                    const Text(" : "),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/teacher_signup');
+                      },
+                      child: const Text('Teacher', style: TextStyle(color: primaryColor)),
+                    ),
                   ],
                 ),
               ],
