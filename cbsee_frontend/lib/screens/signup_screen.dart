@@ -134,7 +134,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Account created. Verification email sent.')),
                             );
-                            Navigator.pushNamed(context, '/verify');
+                            Navigator.pushNamed(context, '/verify', arguments: {'type':'student'});
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Sign up failed. Please try again.')),
