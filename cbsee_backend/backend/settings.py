@@ -144,3 +144,12 @@ FIREBASE_CONFIG = {
   'appId': "1:900349856495:web:2c132e82c4948ba10fe91a",
   'measurementId': "G-J4SDTFKDE4"
 };
+
+import firebase_admin, os
+from firebase_admin import credentials
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+cred = credentials.Certificate(os.path.join(BASE_DIR, "firebase/cbsee-backend.json"))
+# Avoid re-initializing if already initialized
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
