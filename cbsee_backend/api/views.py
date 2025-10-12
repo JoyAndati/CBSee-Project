@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
 from firebase_admin import auth
-from .models import Teacher, Student
+from .models import Teacher, Student, ObjectRecognized, Object
 # Create your views here.
 
 @api_view(['POST'])
@@ -110,18 +110,28 @@ class ClassificationView(APIView):
         Handles the POST request with an uploaded image.
         """
         try:
+            token = request.data.get('token')
+             # Verify Firebase ID token
+            if token:
+                decoded = auth.verify_id_token(token)
+                uid = decoded.get('uid')
             serializer = ImageUploadSerializer(data=request.data)
-            
+            uid = 'Hn7MEsRYmtgReAvbEpKpT3VJdxf1'
             if serializer.is_valid():
                 # Get the validated image file
                 image = serializer.validated_data['image']
                 
                 # Get prediction from our ML service
                 prediction = classifier_instance.predict(image)
-                
+                print(prediction)
+                student = Student.objects.get(StudentID=uid)
                 if prediction:
+                    # get the object
+                    obj = Object.objects.get(ObjectName=prediction)
+                    objRecognized = ObjectRecognized.objects.create(Student=student, Object=obj)
+
                     return Response(
-                        {'prediction': prediction}, 
+                        {'prediction': prediction, 'description':obj.ObjectDescription}, 
                         status=status.HTTP_200_OK
                     )
                 else:
@@ -136,6 +146,7 @@ class ClassificationView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         except Exception as e:
+            print(e);
             return Response(
                 {'error': f'Server error: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

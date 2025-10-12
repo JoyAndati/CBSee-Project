@@ -43,13 +43,21 @@ class ProgressReport(models.Model):
     def __str__(self):
         return f"Report {self.ReportID} for {self.Student.Name}"
 
-
-class ObjectRecognized(models.Model):
-    ObjectID = models.AutoField(primary_key=True)
+class Object(models.Model):
+    ObjectID = models.AutoField(primary_key=True);
     ObjectName = models.CharField(max_length=100)
     ObjectDescription = models.CharField(max_length=255)
-    RecognitionAccuracy = models.FloatField()
+    class Meta:
+        verbose_name = "Object"
+        verbose_name_plural = "Objects"
+    def __str__(self):
+        return self.ObjectName
+
+class ObjectRecognized(models.Model):
+    ID = models.AutoField(primary_key=True)
     Student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='recognized_objects')
+    Object = models.ForeignKey(Object, on_delete=models.SET_NULL, null=True, related_name='recognized_instances')
+
 
     def __str__(self):
-        return f"{self.ObjectName} ({self.RecognitionAccuracy}%)"
+        return f"{self.Object.ObjectName}"
