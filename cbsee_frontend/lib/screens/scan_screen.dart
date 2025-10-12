@@ -106,7 +106,8 @@ class _ScanScreenState extends State<ScanScreen> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         final String prediction = responseData['prediction'];
-        _showObjectDetectionModal(prediction);
+        final String description = responseData['description'];
+        _showObjectDetectionModal(prediction, description);
       } else {
         debugPrint('Server error: ${response.body}');
         if (mounted) {
@@ -133,7 +134,7 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  void _showObjectDetectionModal(String objectName) {
+  void _showObjectDetectionModal(String objectName, String objectDescription) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -143,7 +144,7 @@ class _ScanScreenState extends State<ScanScreen> {
         category: 'Identified Object',
         gradeLevel: 'Grade 1 & 2',
         foundCount: 8,
-        learningTip: 'Ask Joy to find other objects like the $objectName!',
+        learningTip: objectDescription,
       ),
     );
   }
