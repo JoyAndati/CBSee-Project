@@ -1,3 +1,10 @@
+
+import torch
+import torch.nn as nn
+from torchvision import models, transforms
+from PIL import Image
+import io
+import json
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework import status
@@ -80,3 +87,58 @@ def signup(request):
 def index(request):
     print('Take me thru dere');
     return Response({'message':'Take me through dere'}, status=status.HTTP_200_OK)
+
+
+# classifier/views.py
+
+# classifier/views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework import status
+from .serializers import ImageUploadSerializer
+from .ml_inference import classifier_instance
+
+class ClassificationView(APIView):
+    """
+    An APIView for handling image classification.
+    """
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handles the POST request with an uploaded image.
+        """
+        try:
+            serializer = ImageUploadSerializer(data=request.data)
+            
+            if serializer.is_valid():
+                # Get the validated image file
+                image = serializer.validated_data['image']
+                
+                # Get prediction from our ML service
+                prediction = classifier_instance.predict(image)
+                
+                if prediction:
+                    return Response(
+                        {'prediction': prediction}, 
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response(
+                        {'error': 'Failed to process the image. Please try again.'}, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            else:
+                # Return validation errors if the data is invalid (e.g., no image)
+                return Response(
+                    {'error': 'Invalid request. Please provide an image file.', 'details': serializer.errors}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Exception as e:
+            return Response(
+                {'error': f'Server error: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+

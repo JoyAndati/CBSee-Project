@@ -37,7 +37,6 @@ dependencies:
   camera: ^0.10.6
   permission_handler: ^11.3.1
   http: ^1.0.0
-  pytorch_mobile: ^0.2.2
   image: ^4.1.7
 
   # The following adds the Cupertino Icons font to your application.
