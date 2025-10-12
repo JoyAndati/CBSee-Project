@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../widgets/custom_button.dart';
 import '../utils/colors.dart';
 import '../services/auth_service.dart';
@@ -42,7 +41,9 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
       
         final Map<String, dynamic> body = {
           'token': token,
-          'type': type, // "student" or "teacher"
+          'type': "student", //type, // "student" or "teacher",
+          'teacherId':'refrrgsdwde',
+          'gradeLevel':'3'
         };
         try {
           print("here");

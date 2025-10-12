@@ -125,7 +125,7 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(border: InputBorder.none),
                     hint: const Text('Grade Level Taught'),
-                    value: _selectedGrade,
+                    initialValue: _selectedGrade,
                     onChanged: (String? newValue) {
                       setState(() {
                         _selectedGrade = newValue;
@@ -150,7 +150,7 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(border: InputBorder.none),
                     hint: const Text('Subject Taught'),
-                    value: _selectedSubject,
+                    initialValue: _selectedSubject,
                     onChanged: (String? newValue) {
                       setState(() {
                         _selectedSubject = newValue;

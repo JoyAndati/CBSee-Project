@@ -32,7 +32,8 @@ def signup(request):
             try:
                 teacher = Teacher.objects.get(TeacherID=teacher_id)
             except Teacher.DoesNotExist:
-                return Response({'message': 'Teacher not found'}, status=status.HTTP_404_NOT_FOUND)
+                # return Response({'message': 'Teacher not found'}, status=status.HTTP_404_NOT_FOUND)
+                print("Teacher does not exist")
 
             # Create student (if not already exists)
             student, created = Student.objects.get_or_create(
