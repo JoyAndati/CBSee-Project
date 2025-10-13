@@ -68,19 +68,29 @@ class _ScanScreenState extends State<ScanScreen> {
     super.dispose();
   }
 
-  void _onTabTapped(int index) {
+  void _onTabTapped(int index, Map args) {
     setState(() {
       _currentIndex = index;
     });
 
     switch (index) {
       case 0:
+        Navigator.pushNamed(
+          context,
+          '/dashboard',
+          arguments: args
+        );
         break;
       case 1:
-        Navigator.pushNamed(context, '/history');
+        // Navigator.pushNamed(context, '/history');
+        Navigator.pushNamed(
+          context,
+          '/dashboard',
+          arguments: args
+        );
         break;
       case 2:
-        Navigator.pushNamed(context, '/settings');
+        Navigator.pushNamed(context, '/settings', arguments: args);
         break;
     }
   }
@@ -152,7 +162,8 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     final isButtonDisabled = !_isCameraInitialized || _isInferencing;
-
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    final user = args?['user'];
     return Scaffold(
       backgroundColor: const Color(0xFF2A2A2A),
       body: SafeArea(
@@ -368,19 +379,19 @@ class _ScanScreenState extends State<ScanScreen> {
               icon: Icons.camera_alt,
               label: 'Scan',
               isActive: _currentIndex == 0,
-              onTap: () => _onTabTapped(0),
+              onTap: () => _onTabTapped(0, {'user':user}),
             ),
             _buildNavItem(
               icon: Icons.history,
               label: 'History',
               isActive: _currentIndex == 1,
-              onTap: () => _onTabTapped(1),
+              onTap: () => _onTabTapped(1, {'user':user}),
             ),
             _buildNavItem(
               icon: Icons.settings,
               label: 'Settings',
               isActive: _currentIndex == 2,
-              onTap: () => _onTabTapped(2),
+              onTap: () => _onTabTapped(2, {'user':user}),
             ),
           ],
         ),

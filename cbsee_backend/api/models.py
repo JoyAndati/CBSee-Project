@@ -47,6 +47,7 @@ class Object(models.Model):
     ObjectID = models.AutoField(primary_key=True);
     ObjectName = models.CharField(max_length=100)
     ObjectDescription = models.CharField(max_length=255)
+    ObjectCategory = models.CharField(max_length=255, null=True)
     class Meta:
         verbose_name = "Object"
         verbose_name_plural = "Objects"
@@ -57,7 +58,7 @@ class ObjectRecognized(models.Model):
     ID = models.AutoField(primary_key=True)
     Student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='recognized_objects')
     Object = models.ForeignKey(Object, on_delete=models.SET_NULL, null=True, related_name='recognized_instances')
-
+    Timestamp = models.DateTimeField(auto_now_add=True, help_text="The date and time this object was recognized.", null=True)
 
     def __str__(self):
-        return f"{self.Object.ObjectName}"
+        return f"{self.Object.ObjectName} -- {self.Student.Name}"

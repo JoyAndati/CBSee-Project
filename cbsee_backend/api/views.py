@@ -98,6 +98,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from .serializers import ImageUploadSerializer
 from .ml_inference import classifier_instance
+from .models import ObjectRecognized
+from .serializers import DiscoverySerializer
+from rest_framework.generics import ListAPIView
 
 class ClassificationView(APIView):
     """
@@ -153,3 +156,41 @@ class ClassificationView(APIView):
             )
 
 
+
+class DiscoveriesListView(ListAPIView):
+    """
+    Provides a list of all objects discovered by the currently authenticated student.
+    """
+    serializer_class = DiscoverySerializer
+
+
+    def get_queryset(self):
+        request = self.request
+        token = request.headers.get('Authorization')
+
+        uid = None
+        if token:
+            try:
+                # Extract token after "Bearer "
+                id_token = token.split(' ')[-1]
+                decoded = auth.verify_id_token(id_token)
+                uid = decoded.get('uid')
+            except Exception as e:
+                print(f"Token verification failed: {e}")
+                return ObjectRecognized.objects.none()
+
+        if not uid:
+            return ObjectRecognized.objects.none()
+
+        try:
+            student = Student.objects.get(StudentID=uid)
+        except Student.DoesNotExist:
+            return ObjectRecognized.objects.none()
+
+        # Filter recognized objects for this student
+        return (
+            ObjectRecognized.objects
+            .filter(Student=student)
+            .select_related('Object')
+            .order_by('-Timestamp')
+        )

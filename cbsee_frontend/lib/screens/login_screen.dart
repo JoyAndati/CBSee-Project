@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SnackBar(content: Text('Login successful!')),
                       );
                       // Navigate to camera/scan page
-                      Navigator.pushReplacementNamed(context, '/scan');
+                      Navigator.pushReplacementNamed(context, '/scan', arguments: {'user':result['user']});
                     } else if (result['needsVerification'] == true) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

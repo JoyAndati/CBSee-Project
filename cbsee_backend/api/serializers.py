@@ -1,5 +1,6 @@
 # classifier/serializers.py
 from rest_framework import serializers
+from .models import Object, ObjectRecognized
 
 class ImageUploadSerializer(serializers.Serializer):
     """
@@ -15,3 +16,17 @@ class ImageUploadSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("Image file is required and cannot be empty.")
         return value
+
+class DiscoverySerializer(serializers.ModelSerializer):
+    """
+    Formats the recognized object data for the 'My Discoveries' screen.
+    It renames fields to match what the Flutter DiscoveryItem model expects.
+    """
+    id = serializers.IntegerField(source='ID')
+    name = serializers.CharField(source='Object.ObjectName')
+    category = serializers.CharField(source='Object.ObjectCategory')
+    discoveredDate = serializers.DateTimeField(source='Timestamp')
+
+    class Meta:
+        model = ObjectRecognized
+        fields = ('id', 'name', 'category', 'discoveredDate')
