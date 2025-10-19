@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -29,7 +27,7 @@ class _ScanScreenState extends State<ScanScreen> {
   // --- Backend API Endpoint ---
   // IMPORTANT: Use 10.0.2.2 for Android emulator to connect to localhost on your PC
   // For physical devices, use your computer's local IP address (e.g., 192.168.1.10)
-  static const String _apiUrl = "http://192.168.100.9:8000/api/v1/classify/";
+  static const String _apiUrl = "http://192.168.100.159:8000/api/v1/classify/";
 
   @override
   void initState() {

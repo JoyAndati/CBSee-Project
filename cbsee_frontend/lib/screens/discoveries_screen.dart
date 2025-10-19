@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -32,9 +32,9 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
   // --- API Configuration ---
   User? _user;
   String? _authToken;
-  final String _apiUrl = Platform.isAndroid 
-    ? "http://192.168.100.9:8000/api/v1/discoveries/" 
-    : "http://localhost:8000/api/v1/discoveries/";
+  final String _apiUrl = kIsWeb 
+    ? "http://localhost:8000/api/v1/discoveries/" 
+    : "http://192.168.100.159:8000/api/v1/discoveries/";
     
   bool _initializedFromArgs = false;
 
