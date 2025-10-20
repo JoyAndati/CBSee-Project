@@ -27,9 +27,13 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
     );
   }
 
-  Future<void> _checkVerified(String type) async {
+  Future<void> _checkVerified(Map? args) async {
     setState(() => _isLoading = true);
     final bool verified = await _authService.reloadAndCheckEmailVerified();
+    String? type = args?['type'];
+    String? gradeLevel = args?['gradeLevel'];
+    String? subject = args?['subject'];
+    String? school = args?['school'];
     setState(() => _isLoading = false);
     if (!mounted) return;
     if (verified) {
@@ -38,13 +42,24 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
       if(user != null){
         final String? token = await user.getIdToken();
         // send to backend
-      
-        final Map<String, dynamic> body = {
-          'token': token,
-          'type': "student", //type, // "student" or "teacher",
-          'teacherId':'refrrgsdwde',
-          'gradeLevel':'3'
-        };
+        Map<String, dynamic> body;
+        if(type=='student'){
+          body = {
+            'token': token,
+            'type': "student", //type, // "student" or "teacher",
+            // 'teacherId':'refrrgsdwde',
+            'gradeLevel':'3'
+          };
+        }else{
+          body = {
+            'token': token,
+            'type': "teacher", //type, // "student" or "teacher",
+            // 'teacherId':'refrrgsdwde',
+            'gradeLevel':gradeLevel,
+            'subject':subject,
+            'school':school
+          };
+        }
         try {
           print("here");
           // 🔥 Replace with your backend URL
@@ -119,7 +134,7 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
                 const SizedBox(height: 12),
                 CustomButton(
                   text: _isLoading ? 'Please wait...' : 'I Verified, Continue',
-                  onPressed: _isLoading ? null : () { _checkVerified(type); },
+                  onPressed: _isLoading ? null : () { _checkVerified(args); },
                   color: const Color(0xFF00E676),
                 ),
               ],

@@ -47,7 +47,7 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
     try {
       final response = await http.get(
         Uri.parse(url),
-        headers: {'token': token!},
+        headers: {'Authorization': 'Bearer $token!'},
       );
 
       if (response.statusCode == 200) {

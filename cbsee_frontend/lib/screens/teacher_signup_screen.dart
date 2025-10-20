@@ -59,7 +59,7 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Account created. Please check your email to verify.')),
       );
-      Navigator.pushNamedAndRemoveUntil(context, '/verify', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/verify', (route) => false, arguments: {'type':'teacher', 'gradeLevel':_selectedGrade, 'school':_schoolNameController.value, 'subject':_selectedSubject});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sign up failed. The email might be in use or invalid.')),

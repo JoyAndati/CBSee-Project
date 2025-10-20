@@ -33,14 +33,14 @@ def signup(request):
         # Handle user type
         if user_type == 'student':
             grade = data.get('gradeLevel')
-            teacher_id = data.get('teacherId')
+            # teacher_id = data.get('teacherId')
 
-            # Make sure the teacher exists
-            try:
-                teacher = Teacher.objects.get(TeacherID=teacher_id)
-            except Teacher.DoesNotExist:
-                # return Response({'message': 'Teacher not found'}, status=status.HTTP_404_NOT_FOUND)
-                print("Teacher does not exist")
+            # # Make sure the teacher exists
+            # try:
+            #     teacher = Teacher.objects.get(TeacherID=teacher_id)
+            # except Teacher.DoesNotExist:
+            #     # return Response({'message': 'Teacher not found'}, status=status.HTTP_404_NOT_FOUND)
+            #     print("Teacher does not exist")
 
             # Create student (if not already exists)
             student, created = Student.objects.get_or_create(
@@ -59,7 +59,9 @@ def signup(request):
 
         elif user_type == 'teacher':
             school = data.get('school')
-            contact = data.get('contactInfo')
+            contact = data.get('contactInfo', 'example@example.com')
+            subject = data.get('subject', 'Science')
+            grade = data.get('gradeLevel')
 
             teacher, created = Teacher.objects.get_or_create(
                 TeacherID=uid,
@@ -67,7 +69,9 @@ def signup(request):
                     'Name': name,
                     'Email': email,
                     'School': school,
-                    'ContactInfo': contact
+                    'ContactInfo': contact,
+                    'Subject':subject,
+                    'GradeLevel':grade
                 }
             )
 
@@ -200,7 +204,7 @@ class DiscoveriesListView(ListAPIView):
 @api_view(['GET'])
 def dashboard(request):
     try:
-        token = request.headers.get('token')
+        token = request.headers.get('Authorization').split(" ")[-1]
         if not token:
             return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
 

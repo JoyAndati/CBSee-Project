@@ -7,6 +7,8 @@ class Teacher(models.Model):
     Email = models.EmailField(unique=True)
     School = models.CharField(max_length=100)
     ContactInfo = models.CharField(max_length=100)
+    Subject = models.CharField(max_length=100, null=True)
+    GradeLevel = models.CharField(max_length=50, null=True)
 
     def __str__(self):
         return self.Name
@@ -17,7 +19,7 @@ class Student(models.Model):
     Name = models.CharField(max_length=100)
     DateOfBirth = models.DateTimeField(auto_now_add=True)
     GradeLevel = models.CharField(max_length=50)
-    Teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='students')
+    Teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, related_name='students', null=True)
 
     def __str__(self):
         return self.Name
