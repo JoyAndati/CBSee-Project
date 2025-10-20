@@ -11,7 +11,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from firebase_admin import auth
 from .models import Teacher, Student, ObjectRecognized, Object
-# Create your views here.
+from django.core.serializers import serialize
 
 @api_view(['POST'])
 def signup(request):
@@ -194,3 +194,65 @@ class DiscoveriesListView(ListAPIView):
             .select_related('Object')
             .order_by('-Timestamp')
         )
+
+
+
+@api_view(['GET'])
+def dashboard(request):
+    try:
+        token = request.headers.get('token')
+        if not token:
+            return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        decoded = auth.verify_id_token(token)
+        if not decoded:
+            raise Exception('Bad token')
+
+        uid = decoded.get('uid')
+        teacher = Teacher.objects.get(TeacherID=uid)
+        students = Student.objects.filter(Teacher=teacher)
+
+        # Serialize the students' data
+        students_data = json.loads(serialize('json', students))
+        student_list = [
+            {
+                'StudentID': item['pk'],
+                'Name': item['fields']['Name'],
+                'GradeLevel': item['fields']['GradeLevel']
+            }
+            for item in students_data
+        ]
+
+        return Response({'students': student_list}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'message': f'[ERROR]: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def add_student(request):
+    try:
+        token = request.headers.get('token')
+        if not token:
+            return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        decoded = auth.verify_id_token(token)
+        if not decoded:
+            raise Exception('Bad token')
+
+        teacher_uid = decoded.get('uid')
+        teacher = Teacher.objects.get(TeacherID=teacher_uid)
+        
+        student_email = request.data.get('email')
+        # Here you would typically have a way to identify the student by email.
+        # This is a simplified example. You might need a more complex lookup.
+        student = Student.objects.get(Email=student_email)
+        
+        student.Teacher = teacher
+        student.save()
+
+        return Response({'message': 'Student added successfully'}, status=status.HTTP_201_CREATED)
+    
+    except Student.DoesNotExist:
+        return Response({'message': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'message': f'[ERROR]: {e}'}, status=status.HTTP_400_BAD_REQUEST)
