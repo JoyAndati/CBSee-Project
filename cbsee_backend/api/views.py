@@ -31,8 +31,8 @@ def signup(request):
         name = decoded.get('name', 'Unknown User')
 
         # Handle user type
+        grade = data.get('gradeLevel')
         if user_type == 'student':
-            grade = data.get('gradeLevel')
             # teacher_id = data.get('teacherId')
 
             # # Make sure the teacher exists
@@ -48,7 +48,8 @@ def signup(request):
                 defaults={
                     'Name': name,
                     'GradeLevel': grade,
-                    'Teacher': teacher
+                    'Teacher': teacher,
+                    'Email':email
                 }
             )
 
@@ -61,7 +62,6 @@ def signup(request):
             school = data.get('school')
             contact = data.get('contactInfo', 'example@example.com')
             subject = data.get('subject', 'Science')
-            grade = data.get('gradeLevel')
 
             teacher, created = Teacher.objects.get_or_create(
                 TeacherID=uid,
@@ -235,11 +235,14 @@ def dashboard(request):
 @api_view(['POST'])
 def add_student(request):
     try:
-        token = request.headers.get('token')
+        token = request.headers.get('Authorization')
+        
+
         if not token:
             return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+        token = token.split(" ")[-1]
         
-        decoded = auth.verify_id_token(token)
+        decoded = auth.verify_id_token(token.strip())
         if not decoded:
             raise Exception('Bad token')
 
@@ -259,4 +262,5 @@ def add_student(request):
     except Student.DoesNotExist:
         return Response({'message': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+        print(f"[ERROR]:{e}")
         return Response({'message': f'[ERROR]: {e}'}, status=status.HTTP_400_BAD_REQUEST)

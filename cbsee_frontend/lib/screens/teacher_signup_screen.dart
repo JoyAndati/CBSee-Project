@@ -55,11 +55,11 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
 
     if (!mounted) return;
     if (user != null) {
-      // Here you would also save teacher-specific data (school, grade, subject) to Firestore/DB
+      // the teacher endpoint shall be called b
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Account created. Please check your email to verify.')),
       );
-      Navigator.pushNamedAndRemoveUntil(context, '/verify', (route) => false, arguments: {'type':'teacher', 'gradeLevel':_selectedGrade, 'school':_schoolNameController.value, 'subject':_selectedSubject});
+      Navigator.pushNamedAndRemoveUntil(context, '/verify', (route) => false, arguments: {'type':'teacher', 'gradeLevel':_selectedGrade, 'school':_schoolNameController.text, 'subject':_selectedSubject});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sign up failed. The email might be in use or invalid.')),

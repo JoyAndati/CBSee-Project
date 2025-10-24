@@ -22,6 +22,7 @@ class Student {
 }
 
 class MyClassroomScreen extends StatefulWidget {
+  const MyClassroomScreen({super.key});
   @override
   _MyClassroomScreenState createState() => _MyClassroomScreenState();
 }
@@ -104,12 +105,12 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
   Future<void> _addStudent(String email) async {
     // Replace with your actual token and URL
     String? token = await _authService.getToken(); 
-    const String url = '$kBaseApiUrl/add_student/'; 
+    const String url = '$BaseApiUrl/add_student/'; 
 
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {'token': token!, 'Content-Type': 'application/json'},
+        headers: {'Authorization': "Bearer $token", 'Content-Type': 'application/json'},
         body: json.encode({'email': email}),
       );
 
@@ -125,6 +126,7 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
     return Scaffold(
       backgroundColor: Color(0xFFF0FFF0),
       appBar: AppBar(

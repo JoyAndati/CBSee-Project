@@ -1,3 +1,4 @@
+import 'package:cbsee_frontend/utils/config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/custom_button.dart';
@@ -63,7 +64,7 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
         try {
           print("here");
           // 🔥 Replace with your backend URL
-          final url = Uri.parse('http://192.168.100.5:8000/api/v1/auth/signup/');
+          final url = Uri.parse("$BaseApiUrl/auth/signup/");
           final response = await http.post(
             url,
             headers: {
@@ -78,7 +79,7 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
               const SnackBar(content: Text('Email verified!')),
             );
             print('✅ Signup success: ${response.body}');
-            Navigator.pushReplacementNamed(context, '/login');
+            Navigator.pushReplacementNamed(context, '/login',arguments: {'type':type});
           } else {
             print('❌ Signup failed (${response.statusCode}): ${response.body}');
             ScaffoldMessenger.of(context).showSnackBar(
@@ -99,7 +100,7 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)!.settings.arguments as Map?;
-    final type = args?['type'];
+   
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(

@@ -81,6 +81,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    final type = args?['type'];
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
@@ -144,7 +146,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SnackBar(content: Text('Login successful!')),
                       );
                       // Navigate to camera/scan page
-                      Navigator.pushReplacementNamed(context, '/scan', arguments: {'user':result['user']});
+                      if(type=='student'){
+                        Navigator.pushReplacementNamed(context, '/scan', arguments: {'user':result['user']});
+                      }else{
+                        Navigator.pushReplacementNamed(context, '/teacher_dashboard', arguments: {'user':result['user']});
+                      }
                     } else if (result['needsVerification'] == true) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
