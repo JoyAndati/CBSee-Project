@@ -16,6 +16,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _schoolIdController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _agreeToTerms = false;
   bool _isLoading = false;
@@ -50,6 +51,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   hintText: 'Email Address',
                   icon: Icons.email_outlined,
                   controller: _emailController,
+                ),
+                CustomTextField(
+                  hintText: 'School ID',
+                  icon: Icons.card_membership,
+                  controller:_schoolIdController,
                 ),
                 CustomTextField(
                   hintText: 'Password',
@@ -105,6 +111,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           final String email = _emailController.text.trim();
                           final String password = _passwordController.text;
                           final String confirm = _confirmPasswordController.text;
+                          final String schoolId = _schoolIdController.text;
 
                           if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -134,7 +141,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Account created. Verification email sent.')),
                             );
-                            Navigator.pushNamed(context, '/verify', arguments: {'type':'student'});
+                            Navigator.pushNamed(context, '/verify', arguments: {'type':'student', 'schoolId':_schoolIdController.text, 'name':_nameController.text});
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Sign up failed. Please try again.')),

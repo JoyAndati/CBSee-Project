@@ -1,3 +1,4 @@
+import 'package:cbsee_frontend/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import '../utils/colors.dart';
 
@@ -10,23 +11,35 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   int _currentIndex = 2;
+  final AuthService _authService = AuthService();
 
   void _onTabTapped(int index) {
+    if (_currentIndex == index) return; // Do nothing if already on the same tab
+
     setState(() {
       _currentIndex = index;
     });
-    
+
     // Navigate to different screens based on tab selection
     switch (index) {
       case 0:
-        Navigator.pushNamed(context, '/scan');
+        Navigator.pushReplacementNamed(context, '/scan');
         break;
       case 1:
-        Navigator.pushNamed(context, '/history');
+        Navigator.pushReplacementNamed(context, '/history');
         break;
       case 2:
         // Already on settings screen
         break;
+    }
+  }
+
+  // --- Logout Functionality ---
+  Future<void> _logout() async {
+    await _authService.logout();
+    // Navigate to login screen and remove all previous routes from the stack
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (Route<dynamic> route) => false);
     }
   }
 
@@ -37,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top navigation bar
+            // Top navigation bar (unchanged)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -59,24 +72,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 24), // Spacer for centering
+                  const SizedBox(width: 48), // Spacer for centering
                 ],
               ),
             ),
-            
-            // Main content area
+
+            // Main content area - Now with a settings list
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: const Center(
-                  child: Text(
-                    'Settings will be implemented here',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
+              child: ListView(
+                children: [
+                  _buildSettingsCategory("Account"),
+                  _buildSettingsItem(
+                    icon: Icons.person_outline,
+                    title: 'Edit Profile',
+                    onTap: () {
+                      // Navigate to Edit Profile screen
+                    },
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.lock_outline,
+                    title: 'Change Password',
+                    onTap: () {
+                      // Navigate to Change Password screen
+                    },
+                  ),
+                  _buildSettingsCategory("General"),
+                   _buildSettingsItem(
+                    icon: Icons.notifications_outlined,
+                    title: 'Notifications',
+                    onTap: () {
+                      // Navigate to Notifications settings
+                    },
+                  ),
+                   _buildSettingsItem(
+                    icon: Icons.language_outlined,
+                    title: 'Language',
+                    onTap: () {
+                      // Navigate to Language settings
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  // Logout Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextButton(
+                      onPressed: _logout,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        backgroundColor: const Color(0xFF3A3A3A),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
@@ -114,6 +172,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // --- Reusable UI Widgets ---
+
+  Widget _buildSettingsCategory(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 24.0, bottom: 8.0),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.grey,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white70),
+      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16)),
+      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+      onTap: onTap,
+    );
+  }
+
   Widget _buildNavItem({
     required IconData icon,
     required String label,
@@ -123,11 +210,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        width: 80, // Giving a fixed width for better spacing
         padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF2A2A2A) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

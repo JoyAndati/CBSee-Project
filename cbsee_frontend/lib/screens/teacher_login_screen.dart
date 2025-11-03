@@ -4,14 +4,14 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
 import '../utils/colors.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class TeacherLoginScreen extends StatefulWidget {
+  const TeacherLoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<TeacherLoginScreen> createState() => _TeacherLoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _TeacherLoginScreenState extends State<TeacherLoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
@@ -84,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final args = ModalRoute.of(context)!.settings.arguments as Map?;
     String? type = args?['type'];
     if (type == null || type.isEmpty) {
-      type = 'student';
+      type = 'teacher';
     }
         return Scaffold(
       backgroundColor: backgroundColor,
@@ -217,29 +217,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
                 Column(
                   children: [
-                    const Text("Are you a teacher?"),
+                    const Text("Are you a student?"),
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/teacher_login');
+                          Navigator.pushNamed(context, '/login');
                         },
-                        child: const Text('Click Here to Login as Teacher', style: TextStyle(color: primaryColor)),
+                        child: const Text('Click Here to Login as student', style: TextStyle(color: primaryColor)),
                       ),
-                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [                       
-                        const Text("Don't have an account?"),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/signup');
-                          },
-                          child: const Text('Sign Up - Student', style: TextStyle(color: primaryColor)),
-                        ),
-                      ],
+                      Row(mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Don't have an account?"),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/teacher_signup');
+                      },
+                      child: const Text('Sign Up - Teacher', style: TextStyle(color: primaryColor)),
                     ),
-                    
+                  ],
+                ),
                   ],
                 )
                
+                  
               ],
             ),
           ),

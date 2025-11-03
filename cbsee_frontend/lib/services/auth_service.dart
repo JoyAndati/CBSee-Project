@@ -197,4 +197,7 @@ class AuthService {
     String? token = await _auth.currentUser?.getIdToken();
     return token;
   }
+  Future<void> logout()async{
+    _auth.signOut();
+  }
 }

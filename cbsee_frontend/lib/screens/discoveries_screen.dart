@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cbsee_frontend/utils/config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -34,7 +35,7 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
   String? _authToken;
   final String _apiUrl = kIsWeb 
     ? "http://localhost:8000/api/v1/discoveries/" 
-    : "http://192.168.100.159:8000/api/v1/discoveries/";
+    : "$BaseApiUrl/discoveries/";
     
   bool _initializedFromArgs = false;
 

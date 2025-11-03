@@ -35,6 +35,8 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
     String? gradeLevel = args?['gradeLevel'];
     String? subject = args?['subject'];
     String? school = args?['school'];
+    String? name = args?['name'];
+    
     setState(() => _isLoading = false);
     if (!mounted) return;
     if (verified) {
@@ -45,11 +47,14 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
         // send to backend
         Map<String, dynamic> body;
         if(type=='student'){
+          String? schoolId = args?['schoolId'];
           body = {
             'token': token,
             'type': "student", //type, // "student" or "teacher",
             // 'teacherId':'refrrgsdwde',
-            'gradeLevel':'3'
+            'gradeLevel':'3',
+            'name':name,
+            'schoolId':schoolId
           };
         }else{
           body = {
@@ -58,7 +63,8 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
             // 'teacherId':'refrrgsdwde',
             'gradeLevel':gradeLevel,
             'subject':subject,
-            'school':school
+            'school':school,
+            'name':name
           };
         }
         try {
@@ -79,7 +85,11 @@ class _VerifyAccountScreenState extends State<VerifyAccountScreen> {
               const SnackBar(content: Text('Email verified!')),
             );
             print('✅ Signup success: ${response.body}');
-            Navigator.pushReplacementNamed(context, '/login',arguments: {'type':type});
+            if(type=='student'){
+              Navigator.pushReplacementNamed(context, '/login',arguments: {'type':type});
+            }else{
+              Navigator.pushReplacementNamed(context, '/teacher_login');
+            }
           } else {
             print('❌ Signup failed (${response.statusCode}): ${response.body}');
             ScaffoldMessenger.of(context).showSnackBar(

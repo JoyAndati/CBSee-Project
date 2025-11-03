@@ -28,8 +28,9 @@ def signup(request):
         decoded = auth.verify_id_token(token)
         uid = decoded.get('uid')
         email = decoded.get('email')
-        name = decoded.get('name', 'Unknown User')
-
+        name = decoded.get('display_name', 'Unknown User')
+        if name=='Unknown User':
+            name = data.get('name', 'unkown')
         # Handle user type
         grade = data.get('gradeLevel')
         if user_type == 'student':
@@ -48,7 +49,7 @@ def signup(request):
                 defaults={
                     'Name': name,
                     'GradeLevel': grade,
-                    'Teacher': teacher,
+                    'Teacher': None,
                     'Email':email
                 }
             )
@@ -117,13 +118,18 @@ class ClassificationView(APIView):
         Handles the POST request with an uploaded image.
         """
         try:
-            token = request.data.get('token')
+            token = request.data.get('body')
+            data = json.loads(token)
+            token = data.get('token');
              # Verify Firebase ID token
+            uid=''
             if token:
+                # print(f"token present:{token}")
                 decoded = auth.verify_id_token(token)
                 uid = decoded.get('uid')
+            else:
+                uid = 'Hn7MEsRYmtgReAvbEpKpT3VJdxf1'
             serializer = ImageUploadSerializer(data=request.data)
-            uid = 'Hn7MEsRYmtgReAvbEpKpT3VJdxf1'
             if serializer.is_valid():
                 # Get the validated image file
                 image = serializer.validated_data['image']
@@ -227,7 +233,7 @@ def dashboard(request):
             for item in students_data
         ]
 
-        return Response({'students': student_list}, status=status.HTTP_200_OK)
+        return Response({'students': student_list, 'name':teacher.Name}, status=status.HTTP_200_OK)
 
     except Exception as e:
         return Response({'message': f'[ERROR]: {e}'}, status=status.HTTP_400_BAD_REQUEST)

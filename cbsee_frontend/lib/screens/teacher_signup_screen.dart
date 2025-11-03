@@ -59,7 +59,7 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Account created. Please check your email to verify.')),
       );
-      Navigator.pushNamedAndRemoveUntil(context, '/verify', (route) => false, arguments: {'type':'teacher', 'gradeLevel':_selectedGrade, 'school':_schoolNameController.text, 'subject':_selectedSubject});
+      Navigator.pushNamedAndRemoveUntil(context, '/verify', (route) => false, arguments: {'type':'teacher', 'gradeLevel':_selectedGrade, 'school':_schoolNameController.text, 'subject':_selectedSubject, 'name':fullName});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sign up failed. The email might be in use or invalid.')),
@@ -209,7 +209,7 @@ class _TeacherSignupScreenState extends State<TeacherSignupScreen> {
                     const Text("Already have an account?"),
                     TextButton(
                       onPressed: () {
-                         Navigator.pushNamed(context, '/login');
+                         Navigator.pushNamed(context, '/teacher_login', arguments: {'type':'teacher'});
                       },
                       child: const Text('Log In', style: TextStyle(color: primaryColor)),
                     ),

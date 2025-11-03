@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:camera/camera.dart';
+import 'package:cbsee_frontend/services/auth_service.dart';
+import 'package:cbsee_frontend/utils/config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
@@ -19,6 +21,7 @@ class _ScanScreenState extends State<ScanScreen> {
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
+  AuthService _authService = AuthService();
 
   // --- UI State ---
   int _currentIndex = 0;
@@ -27,7 +30,7 @@ class _ScanScreenState extends State<ScanScreen> {
   // --- Backend API Endpoint ---
   // IMPORTANT: Use 10.0.2.2 for Android emulator to connect to localhost on your PC
   // For physical devices, use your computer's local IP address (e.g., 192.168.1.10)
-  static const String _apiUrl = "http://192.168.100.159:8000/api/v1/classify/";
+  static const String _apiUrl = "$BaseApiUrl/classify/";
 
   @override
   void initState() {
@@ -100,10 +103,18 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     if (mounted) setState(() => _isInferencing = true);
+    String? token = await _authService.getToken(); 
+    Map<String, dynamic> body = {
+    'token': '$token',
+    };
+
+    // 2. Encode the map into a JSON string
+    String jsonBody = json.encode(body);
 
     try {
       final XFile imageFile = await _cameraController!.takePicture();
       var request = http.MultipartRequest('POST', Uri.parse(_apiUrl));
+      request.fields['body'] = jsonBody;
       request.files.add(
         await http.MultipartFile.fromPath('image', imageFile.path),
       );

@@ -48,7 +48,7 @@ class ImageClassifier:
             logger.info(f"✅ Found {num_classes} classes: {self.class_names}")
 
             # Recreate the model structure
-            self.model = models.mobilenet_v3_small(pretrained=False)
+            self.model = models.mobilenet_v3_large(pretrained=False)
             num_ftrs = self.model.classifier[-1].in_features
             self.model.classifier[-1] = nn.Linear(num_ftrs, num_classes)
             
