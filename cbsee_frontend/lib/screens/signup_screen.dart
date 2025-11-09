@@ -15,11 +15,36 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  final TextEditingController _schoolIdController = TextEditingController();
   final AuthService _authService = AuthService();
-  bool _agreeToTerms = false;
   bool _isLoading = false;
+
+  void _signUp() async {
+    // Basic validation
+    if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final user = await _authService.signUpWithEmail(
+      _emailController.text.trim(),
+      _passwordController.text,
+      _nameController.text.trim(),
+    );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (user != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created! Please check your email to verify.')),
+      );
+      // The AuthGate will now see the new user and navigate to CreateProfileScreen
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign up failed. The email might be in use or invalid.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,145 +57,23 @@ class _SignupScreenState extends State<SignupScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'CBSee',
-                  style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: secondaryColor),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Join CBSee',
-                  style: TextStyle(fontSize: 24, color: secondaryColor),
-                ),
+                const Text('Join CBSee', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: secondaryColor)),
                 const SizedBox(height: 40),
-                CustomTextField(
-                  hintText: 'Full Name',
-                  icon: Icons.person_outline,
-                  controller: _nameController,
-                ),
-                CustomTextField(
-                  hintText: 'Email Address',
-                  icon: Icons.email_outlined,
-                  controller: _emailController,
-                ),
-                CustomTextField(
-                  hintText: 'School ID',
-                  icon: Icons.card_membership,
-                  controller:_schoolIdController,
-                ),
-                CustomTextField(
-                  hintText: 'Password',
-                  icon: Icons.lock_outline,
-                  isPassword: true,
-                  controller: _passwordController,
-                ),
-                CustomTextField(
-                  hintText: 'Confirm Password',
-                  icon: Icons.lock_outline,
-                  isPassword: true,
-                  controller: _confirmPasswordController,
-                ),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _agreeToTerms,
-                      onChanged: (value) {
-                        setState(() {
-                          _agreeToTerms = value!;
-                        });
-                      },
-                      activeColor: primaryColor,
-                    ),
-                    Expanded(
-                      child: RichText(
-                        text: const TextSpan(
-                          text: 'I agree to the ',
-                          style: TextStyle(color: Colors.black),
-                          children: [
-                            TextSpan(
-                              text: 'Terms of Service',
-                              style: TextStyle(color: primaryColor),
-                            ),
-                            TextSpan(text: ' and '),
-                            TextSpan(
-                              text: 'Privacy Policy',
-                              style: TextStyle(color: primaryColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                CustomTextField(controller: _nameController, hintText: 'Full Name', icon: Icons.person_outline),
+                CustomTextField(controller: _emailController, hintText: 'Email Address', icon: Icons.email_outlined),
+                CustomTextField(controller: _passwordController, hintText: 'Password', icon: Icons.lock_outline, isPassword: true),
                 const SizedBox(height: 20),
                 CustomButton(
                   text: _isLoading ? 'Creating account...' : 'Sign Up',
-                  onPressed: _isLoading
-                      ? null
-                      : () async {
-                          final String name = _nameController.text.trim();
-                          final String email = _emailController.text.trim();
-                          final String password = _passwordController.text;
-                          final String confirm = _confirmPasswordController.text;
-                          final String schoolId = _schoolIdController.text;
-
-                          if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please fill in all fields.')),
-                            );
-                            return;
-                          }
-                          if (password != confirm) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Passwords do not match.')),
-                            );
-                            return;
-                          }
-                          if (!_agreeToTerms) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('You must agree to the Terms and Privacy Policy.')),
-                            );
-                            return;
-                          }
-
-                          setState(() => _isLoading = true);
-                          final user = await _authService.signUpWithEmailAndPassword(email, password, name);
-                          setState(() => _isLoading = false);
-
-                          if (!mounted) return;
-                          if (user != null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Account created. Verification email sent.')),
-                            );
-                            Navigator.pushNamed(context, '/verify', arguments: {'type':'student', 'schoolId':_schoolIdController.text, 'name':_nameController.text});
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Sign up failed. Please try again.')),
-                            );
-                          }
-                        },
+                  onPressed: _isLoading ? null : _signUp,
                 ),
-                const SizedBox(height: 16),
-                const Row(
-                  children: [
-                    Expanded(child: Divider()),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('OR', style: TextStyle(color: Colors.grey)),
-                    ),
-                    Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 16),
-               
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Already have an account?"),
                     TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(context),
                       child: const Text('Log In', style: TextStyle(color: primaryColor)),
                     ),
                   ],

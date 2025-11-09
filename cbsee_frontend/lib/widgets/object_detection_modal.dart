@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../utils/colors.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
-class ObjectDetectionModal extends StatelessWidget {
+// Converted to a StatefulWidget
+class ObjectDetectionModalWithTTS extends StatefulWidget {
+  final FlutterTts flutterTts; // Pass the TTS instance
   final String objectName;
   final String category;
   final String gradeLevel;
@@ -9,8 +11,9 @@ class ObjectDetectionModal extends StatelessWidget {
   final String learningTip;
   final String? imagePath;
 
-  const ObjectDetectionModal({
+  const ObjectDetectionModalWithTTS({
     super.key,
+    required this.flutterTts,
     required this.objectName,
     required this.category,
     required this.gradeLevel,
@@ -18,6 +21,72 @@ class ObjectDetectionModal extends StatelessWidget {
     required this.learningTip,
     this.imagePath,
   });
+
+  @override
+  State<ObjectDetectionModalWithTTS> createState() =>
+      _ObjectDetectionModalWithTTSState();
+}
+
+class _ObjectDetectionModalWithTTSState
+    extends State<ObjectDetectionModalWithTTS> {
+  // Manage speaking state locally
+  bool _isSpeaking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set up local listeners
+    _setupTtsHandlers();
+  }
+
+  void _setupTtsHandlers() {
+    widget.flutterTts.setStartHandler(() {
+      if (mounted) {
+        setState(() {
+          _isSpeaking = true;
+        });
+      }
+    });
+
+    widget.flutterTts.setCompletionHandler(() {
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+        });
+      }
+    });
+
+    widget.flutterTts.setErrorHandler((msg) {
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+        });
+      }
+      debugPrint('TTS Error from Modal: $msg');
+    });
+  }
+
+  // Local replay function
+  Future<void> _replayAudio() async {
+    if (_isSpeaking) return;
+    try {
+      String textToSpeak =
+          "I found a ${widget.objectName}. ${widget.learningTip}";
+      await widget.flutterTts.speak(textToSpeak);
+    } catch (e) {
+      debugPrint('Error replaying audio: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    // It's good practice to clear handlers to prevent memory leaks,
+    // though in this case the TTS instance lives on in ScanScreen.
+    widget.flutterTts.setStartHandler(() {});
+    widget.flutterTts.setCompletionHandler(() {});
+    widget.flutterTts.setErrorHandler((msg) {});
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +115,7 @@ class ObjectDetectionModal extends StatelessWidget {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               // Content
               Expanded(
                 child: SingleChildScrollView(
@@ -70,11 +139,11 @@ class ObjectDetectionModal extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: imagePath != null
+                        child: widget.imagePath != null
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Image.asset(
-                                  imagePath!,
+                                  widget.imagePath!,
                                   fit: BoxFit.contain,
                                 ),
                               )
@@ -86,21 +155,55 @@ class ObjectDetectionModal extends StatelessWidget {
                                 ),
                               ),
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
-                      // Object Name
-                      Text(
-                        objectName,
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2E7D32), // Dark green
-                        ),
+
+                      // Object Name with Replay Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              widget.objectName,
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E7D32), // Dark green
+                              ),
+                            ),
+                          ),
+                          // Replay Audio Button
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _isSpeaking
+                                  ? const Color(0xFF2E7D32).withOpacity(0.1)
+                                  : const Color(0xFFE8F5E8),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _isSpeaking
+                                    ? const Color(0xFF2E7D32)
+                                    : const Color(0xFF81C784),
+                                width: 2,
+                              ),
+                            ),
+                            child: IconButton(
+                              // Use local state and function
+                              onPressed: _isSpeaking ? null : _replayAudio,
+                              icon: Icon(
+                                _isSpeaking ? Icons.volume_up : Icons.replay,
+                                color: const Color(0xFF2E7D32),
+                                size: 28,
+                              ),
+                              tooltip:
+                                  _isSpeaking ? 'Playing...' : 'Replay audio',
+                            ),
+                          ),
+                        ],
                       ),
-                      
+
                       const SizedBox(height: 8),
-                      
+
                       // Category Tag
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -112,7 +215,7 @@ class ObjectDetectionModal extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          category,
+                          widget.category,
                           style: const TextStyle(
                             color: Color(0xFF2E7D32), // Dark green
                             fontSize: 14,
@@ -120,42 +223,44 @@ class ObjectDetectionModal extends StatelessWidget {
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Grade Level
                       Text(
-                        'Relevant for $gradeLevel',
+                        'Relevant for ${widget.gradeLevel}',
                         style: const TextStyle(
                           fontSize: 16,
                           color: Color(0xFF424242),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 8),
-                      
+
                       // Found Count
                       Text(
-                        'Found by Joy $foundCount times',
+                        'Found by Joy ${widget.foundCount} times',
                         style: const TextStyle(
                           fontSize: 16,
                           color: Color(0xFF424242),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Actionable Tip
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E8), // Light green background
+                          color: const Color(
+                              0xFFE8F5E8), // Light green background
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF81C784), // Light green border
+                            color:
+                                const Color(0xFF81C784), // Light green border
                             width: 1,
                           ),
                         ),
@@ -165,7 +270,7 @@ class ObjectDetectionModal extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: primaryColor,
+                                color: const Color(0xFF2E7D32),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
@@ -189,7 +294,7 @@ class ObjectDetectionModal extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    learningTip,
+                                    widget.learningTip,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Color(0xFF424242),
@@ -202,9 +307,9 @@ class ObjectDetectionModal extends StatelessWidget {
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Action Buttons
                       Row(
                         children: [
@@ -215,13 +320,15 @@ class ObjectDetectionModal extends StatelessWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Added to favorites!'),
-                                    backgroundColor: primaryColor,
+                                    backgroundColor: Color(0xFF2E7D32),
                                   ),
                                 );
                               },
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                side: const BorderSide(color: primaryColor),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                side:
+                                    const BorderSide(color: Color(0xFF2E7D32)),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -229,7 +336,7 @@ class ObjectDetectionModal extends StatelessWidget {
                               child: const Text(
                                 'Add to Favorites',
                                 style: TextStyle(
-                                  color: primaryColor,
+                                  color: Color(0xFF2E7D32),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -243,13 +350,14 @@ class ObjectDetectionModal extends StatelessWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Shared!'),
-                                    backgroundColor: primaryColor,
+                                    backgroundColor: Color(0xFF2E7D32),
                                   ),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                backgroundColor: const Color(0xFF2E7D32),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),

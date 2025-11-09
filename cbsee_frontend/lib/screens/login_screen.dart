@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
 import '../utils/colors.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,76 +18,23 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
-  void _showForgotPasswordDialog() {
-    final TextEditingController emailController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Reset Password'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Enter your email address and we\'ll send you a link to reset your password.'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final String email = emailController.text.trim();
-                if (email.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter your email address.')),
-                  );
-                  return;
-                }
-                
-                Navigator.of(context).pop();
-                setState(() => _isLoading = true);
-                
-                final bool sent = await _authService.sendPasswordResetEmail(email);
-                setState(() => _isLoading = false);
-                
-                if (!mounted) return;
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(sent 
-                        ? 'Password reset email sent to $email'
-                        : 'Failed to send password reset email. Please try again.'),
-                  ),
-                );
-              },
-              child: const Text('Send Reset Link'),
-            ),
-          ],
-        );
-      },
-    );
+  Future<void> _handleLogin(Future<dynamic> Function() loginMethod) async {
+    setState(() => _isLoading = true);
+    final user = await loginMethod();
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login failed. Please check your credentials.')),
+      );
+    }
+    // On success, the AuthGate will automatically handle navigation.
   }
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)!.settings.arguments as Map?;
-    String? type = args?['type'];
-    if (type == null || type.isEmpty) {
-      type = 'student';
-    }
-        return Scaffold(
+    return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
         child: Center(
@@ -94,152 +42,48 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  'CBSee',
-                  style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: secondaryColor),
-                ),
+                const Text('CBSee', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: secondaryColor)),
                 const SizedBox(height: 16),
-                const Text(
-                  'Welcome Back!',
-                  style: TextStyle(fontSize: 24, color: secondaryColor),
-                ),
+                const Text('Welcome Back!', style: TextStyle(fontSize: 24, color: secondaryColor)),
                 const SizedBox(height: 40),
-                CustomTextField(
-                  hintText: 'Email or Phone Number',
-                  icon: Icons.email_outlined,
-                  controller: _emailController,
-                ),
-                CustomTextField(
-                  hintText: 'Password',
-                  icon: Icons.lock_outline,
-                  isPassword: true,
-                  controller: _passwordController,
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => _showForgotPasswordDialog(),
-                    child: const Text('Forgot Password?', style: TextStyle(color: primaryColor)),
-                  ),
-                ),
+                CustomTextField(controller: _emailController, hintText: 'Email Address', icon: Icons.email_outlined),
+                CustomTextField(controller: _passwordController, hintText: 'Password', icon: Icons.lock_outline, isPassword: true),
                 const SizedBox(height: 20),
                 CustomButton(
                   text: _isLoading ? 'Signing In...' : 'Log In',
-                  onPressed: _isLoading ? null : () async {
-                    final String email = _emailController.text.trim();
-                    final String password = _passwordController.text;
-
-                    if (email.isEmpty || password.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please fill in all fields.')),
-                      );
-                      return;
-                    }
-
-                    setState(() => _isLoading = true);
-                    final result = await _authService.signInWithEmailAndPassword(email, password);
-                    setState(() => _isLoading = false);
-
-                    if (!mounted) return;
-                    
-                    if (result['success'] == true) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Login successful!')),
-                      );
-                      // Navigate to camera/scan page
-                      if(type=='student'){
-                        Navigator.pushReplacementNamed(context, '/scan', arguments: {'user':result['user']});
-                      }else{
-                        Navigator.pushReplacementNamed(context, '/teacher_dashboard', arguments: {'user':result['user']});
-                      }
-                    } else if (result['needsVerification'] == true) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(result['error']),
-                          action: SnackBarAction(
-                            label: 'Verify',
-                            onPressed: () => Navigator.pushNamed(context, '/verify'),
-                          ),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(result['error'])),
-                      );
-                    }
-                  },
+                  onPressed: _isLoading ? null : () => _handleLogin(() => _authService.signInWithEmail(_emailController.text, _passwordController.text)),
                 ),
                 const SizedBox(height: 16),
                 const Row(
                   children: [
                     Expanded(child: Divider()),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('OR', style: TextStyle(color: Colors.grey)),
-                    ),
+                    Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('OR')),
                     Expanded(child: Divider()),
                   ],
                 ),
                 const SizedBox(height: 16),
-                // SizedBox(
-                //   width: double.infinity,
-                //   child: OutlinedButton.icon(
-                //     onPressed: _isLoading ? null : () async {
-                //       setState(() => _isLoading = true);
-                //       final user = await _authService.signInWithGoogle();
-                //       setState(() => _isLoading = false);
-
-                //       if (!mounted) return;
-                //       if (user != null) {
-                //         ScaffoldMessenger.of(context).showSnackBar(
-                //           const SnackBar(content: Text('Google sign-in successful!')),
-                //         );
-                //         // Navigate to camera/scan page
-                //         Navigator.pushReplacementNamed(context, '/scan');
-                //       } else {
-                //         ScaffoldMessenger.of(context).showSnackBar(
-                //           const SnackBar(content: Text('Google sign-in failed. Please try again.')),
-                //         );
-                //       }
-                //     },
-                //     icon: const Icon(Icons.login, color: Colors.red),
-                //     label: const Text('Continue with Google', style: TextStyle(color: Colors.black87)),
-                //     style: OutlinedButton.styleFrom(
-                //       padding: const EdgeInsets.symmetric(vertical: 16.0),
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(12.0),
-                //       ),
-                //     ),
-                //   ),
-                // ),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : () => _handleLogin(_authService.signInWithGoogle),
+                  icon: const FaIcon(FontAwesomeIcons.google, color: Colors.white),
+                  label: const Text('Continue with Google'),
+                  style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.red,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0))),
+                ),
                 const SizedBox(height: 20),
-                Column(
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Are you a teacher?"),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/teacher_login');
-                        },
-                        child: const Text('Click Here to Login as Teacher', style: TextStyle(color: primaryColor)),
-                      ),
-                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [                       
-                        const Text("Don't have an account?"),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/signup');
-                          },
-                          child: const Text('Sign Up - Student', style: TextStyle(color: primaryColor)),
-                        ),
-                      ],
+                    const Text("Don't have an account?"),
+                    TextButton(
+                      onPressed: () => Navigator.pushNamed(context, '/signup'),
+                      child: const Text('Sign Up', style: TextStyle(color: primaryColor)),
                     ),
-                    
                   ],
-                )
-               
+                ),
               ],
             ),
           ),

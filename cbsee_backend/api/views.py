@@ -12,91 +12,6 @@ from rest_framework.decorators import api_view
 from firebase_admin import auth
 from .models import Teacher, Student, ObjectRecognized, Object
 from django.core.serializers import serialize
-
-@api_view(['POST'])
-def signup(request):
-    data = request.data
-
-    try:
-        token = data.get('token')
-        user_type = data.get('type')  # "student" or "teacher"
-
-        if not token:
-            return Response({'message': 'Missing token'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Verify Firebase ID token
-        decoded = auth.verify_id_token(token)
-        uid = decoded.get('uid')
-        email = decoded.get('email')
-        name = decoded.get('display_name', 'Unknown User')
-        if name=='Unknown User':
-            name = data.get('name', 'unkown')
-        # Handle user type
-        grade = data.get('gradeLevel')
-        if user_type == 'student':
-            # teacher_id = data.get('teacherId')
-
-            # # Make sure the teacher exists
-            # try:
-            #     teacher = Teacher.objects.get(TeacherID=teacher_id)
-            # except Teacher.DoesNotExist:
-            #     # return Response({'message': 'Teacher not found'}, status=status.HTTP_404_NOT_FOUND)
-            #     print("Teacher does not exist")
-
-            # Create student (if not already exists)
-            student, created = Student.objects.get_or_create(
-                StudentID=uid,
-                defaults={
-                    'Name': name,
-                    'GradeLevel': grade,
-                    'Teacher': None,
-                    'Email':email
-                }
-            )
-
-            if not created:
-                return Response({'message': 'Student already exists'}, status=status.HTTP_200_OK)
-
-            return Response({'message': 'Student account created'}, status=status.HTTP_201_CREATED)
-
-        elif user_type == 'teacher':
-            school = data.get('school')
-            contact = data.get('contactInfo', 'example@example.com')
-            subject = data.get('subject', 'Science')
-
-            teacher, created = Teacher.objects.get_or_create(
-                TeacherID=uid,
-                defaults={
-                    'Name': name,
-                    'Email': email,
-                    'School': school,
-                    'ContactInfo': contact,
-                    'Subject':subject,
-                    'GradeLevel':grade
-                }
-            )
-
-            if not created:
-                return Response({'message': 'Teacher already exists'}, status=status.HTTP_200_OK)
-
-            return Response({'message': 'Teacher account created'}, status=status.HTTP_201_CREATED)
-
-        else:
-            return Response({'message': 'Invalid user type'}, status=status.HTTP_400_BAD_REQUEST)
-
-    except Exception as e:
-        print("Signup error:", e)
-        return Response({'message': 'Invalid or expired token', 'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-def index(request):
-    print('Take me thru dere');
-    return Response({'message':'Take me through dere'}, status=status.HTTP_200_OK)
-
-
-# classifier/views.py
-
-# classifier/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -106,6 +21,14 @@ from .ml_inference import classifier_instance
 from .models import ObjectRecognized
 from .serializers import DiscoverySerializer
 from rest_framework.generics import ListAPIView
+
+@api_view(['GET'])
+def index(request):
+    print('Take me thru dere');
+    return Response({'message':'Take me through dere'}, status=status.HTTP_200_OK)
+
+
+# classifier/views.py
 
 class ClassificationView(APIView):
     """
@@ -205,39 +128,6 @@ class DiscoveriesListView(ListAPIView):
             .order_by('-Timestamp')
         )
 
-
-
-@api_view(['GET'])
-def dashboard(request):
-    try:
-        token = request.headers.get('Authorization').split(" ")[-1]
-        if not token:
-            return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        decoded = auth.verify_id_token(token)
-        if not decoded:
-            raise Exception('Bad token')
-
-        uid = decoded.get('uid')
-        teacher = Teacher.objects.get(TeacherID=uid)
-        students = Student.objects.filter(Teacher=teacher)
-
-        # Serialize the students' data
-        students_data = json.loads(serialize('json', students))
-        student_list = [
-            {
-                'StudentID': item['pk'],
-                'Name': item['fields']['Name'],
-                'GradeLevel': item['fields']['GradeLevel']
-            }
-            for item in students_data
-        ]
-
-        return Response({'students': student_list, 'name':teacher.Name}, status=status.HTTP_200_OK)
-
-    except Exception as e:
-        return Response({'message': f'[ERROR]: {e}'}, status=status.HTTP_400_BAD_REQUEST)
-
 @api_view(['POST'])
 def add_student(request):
     try:
@@ -269,4 +159,130 @@ def add_student(request):
         return Response({'message': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         print(f"[ERROR]:{e}")
+        return Response({'message': f'[ERROR]: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
+# --- Helper Function for Authentication ---
+# This function centralizes token verification to keep your code DRY (Don't Repeat Yourself)
+def verify_firebase_token(request):
+    """
+    Verifies the Firebase token from the Authorization header.
+    Returns the decoded token dictionary or None if invalid.
+    """
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+    
+    id_token = auth_header.split('Bearer ').pop()
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        return decoded_token
+    except Exception as e:
+        print(f"Token verification failed: {e}")
+        return None
+
+# --- Updated and New Views ---
+
+@api_view(['GET'])
+def check_profile(request):
+    """
+    Checks if a user profile (Student or Teacher) exists for the given Firebase UID.
+    The Flutter app should call this immediately after a successful login.
+    """
+    decoded_token = verify_firebase_token(request)
+    if not decoded_token:
+        return Response({'message': 'Invalid or missing token'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    uid = decoded_token.get('uid')
+    
+    # Check if a Teacher profile exists
+    if Teacher.objects.filter(TeacherID=uid).exists():
+        return Response({'profileExists': True, 'userType': 'teacher'}, status=status.HTTP_200_OK)
+    
+    # Check if a Student profile exists
+    if Student.objects.filter(StudentID=uid).exists():
+        return Response({'profileExists': True, 'userType': 'student'}, status=status.HTTP_200_OK)
+        
+    # If no profile is found
+    return Response({'profileExists': False}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def signup(request):
+    """
+    Creates a Student or Teacher profile in the database.
+    This should be called when a new user provides their role and other details.
+    """
+    data = request.data
+
+    try:
+        token = data.get('token')
+        if not token:
+            return Response({'message': 'Missing token'}, status=status.HTTP_400_BAD_REQUEST)
+
+        decoded = auth.verify_id_token(token)
+        uid = decoded.get('uid')
+        email = decoded.get('email')
+        
+        # Prefer the name from the request, fallback to the token's display name
+        name = data.get('name', decoded.get('name', 'Unknown User'))
+        user_type = data.get('type')
+        grade = data.get('gradeLevel')
+
+        if user_type == 'student':
+            # This logic is fine, it creates a student record linked to the Firebase UID.
+            student, created = Student.objects.get_or_create(
+                StudentID=uid,
+                defaults={'Name': name, 'GradeLevel': grade, 'Email': email}
+            )
+            if not created:
+                return Response({'message': 'Student already exists'}, status=status.HTTP_200_OK)
+            return Response({'message': 'Student account created'}, status=status.HTTP_201_CREATED)
+
+        elif user_type == 'teacher':
+            # This logic is fine, it creates a teacher record.
+            teacher, created = Teacher.objects.get_or_create(
+                TeacherID=uid,
+                defaults={
+                    'Name': name,
+                    'Email': email,
+                    'School': data.get('school'),
+                    'ContactInfo': data.get('contactInfo', email),
+                    'Subject': data.get('subject'),
+                    'GradeLevel': grade
+                }
+            )
+            if not created:
+                return Response({'message': 'Teacher already exists'}, status=status.HTTP_200_OK)
+            return Response({'message': 'Teacher account created'}, status=status.HTTP_201_CREATED)
+
+        else:
+            return Response({'message': 'Invalid user type'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        print(f"Signup error: {e}")
+        return Response({'message': 'An error occurred during signup', 'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+# --- Your Existing Views (Refactored for Authentication) ---
+
+@api_view(['GET'])
+def dashboard(request):
+    decoded_token = verify_firebase_token(request)
+    if not decoded_token:
+        return Response({'message': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+    try:
+        uid = decoded_token.get('uid')
+        teacher = Teacher.objects.get(TeacherID=uid)
+        students = Student.objects.filter(Teacher=teacher)
+
+        # Your serialization logic is fine
+        students_data = json.loads(serialize('json', students))
+        student_list = [
+            {'StudentID': item['pk'], 'Name': item['fields']['Name'], 'GradeLevel': item['fields']['GradeLevel']}
+            for item in students_data
+        ]
+        return Response({'students': student_list, 'name': teacher.Name}, status=status.HTTP_200_OK)
+    except Teacher.DoesNotExist:
+        return Response({'message': 'Teacher profile not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
         return Response({'message': f'[ERROR]: {e}'}, status=status.HTTP_400_BAD_REQUEST)

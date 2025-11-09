@@ -1,203 +1,166 @@
+import 'package:cbsee_frontend/utils/config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+// 🔥 IMPORTANT: Replace with your actual backend URL
+const String backendUrl = "http://192.168.100.9:8000/api/v1"; // Use 10.0.2.2 for Android emulator
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  // Google Sign-In configuration
-  // For web, the plugin will automatically use the correct client ID from Firebase
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // Helper for ActionCodeSettings
-  ActionCodeSettings _getActionCodeSettings() {
-    return ActionCodeSettings(
-      // Use your Firebase project domain
-      url: 'https://cbsee-1f435.firebaseapp.com/__/auth/action',
-      handleCodeInApp: true,
-      // Use your actual iOS bundle ID from firebase_options.dart
-      iOSBundleId: 'com.example.cbseeFrontend',
-      // Use your actual Android package name
-      androidPackageName: 'com.example.cbsee_frontend',
-      androidInstallApp: true,
-      androidMinimumVersion: '12',
-    );
+  // --- Firebase Authentication Methods ---
+
+  Future<User?> signInWithGoogle() async {
+    try {
+      // Use popup/redirect for web, native flow for mobile
+      if (kIsWeb) {
+        // Web: Use signInWithPopup
+        GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        
+        try {
+          // Try popup first (better UX)
+          final UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
+          return userCredential.user;
+        } catch (e) {
+          // If popup fails (blocked), fall back to redirect
+          debugPrint("Popup blocked, using redirect: $e");
+          await _auth.signInWithRedirect(googleProvider);
+          // Note: After redirect, user will return to app and we get result via getRedirectResult
+          return null;
+        }
+      } else {
+        // Mobile/Desktop: Use native Google Sign-In
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) return null; // User canceled the sign-in
+        
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+      
+        final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        return userCredential.user;
+      }
+    } catch (e) {
+      debugPrint("Google Sign-In Error: $e");
+      return null;
+    }
   }
 
-  // Sign up with email and password
-  Future<User?> signUpWithEmailAndPassword(String email, String password, String fullName) async {
+  // Call this method on web app initialization to handle redirect result
+  Future<User?> checkRedirectResult() async {
+    if (kIsWeb) {
+      try {
+        final UserCredential? userCredential = await _auth.getRedirectResult();
+        return userCredential?.user;
+      } catch (e) {
+        debugPrint("Redirect Result Error: $e");
+        return null;
+      }
+    }
+    return null;
+  }
+
+  Future<User?> signUpWithEmail(String email, String password, String name) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       User? user = result.user;
       if (user != null) {
-        await user.updateDisplayName(fullName);
-        await user.sendEmailVerification(_getActionCodeSettings()); // <-- FIX: Added ActionCodeSettings
+        await user.updateDisplayName(name);
+        await user.sendEmailVerification(); // Firebase handles this now
       }
       return user;
-    } on FirebaseAuthException catch (e) {
-      debugPrint('signUpWithEmailAndPassword error: ${e.message}');
-      return null;
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("Email Sign-Up Error: $e");
       return null;
     }
   }
 
-  // Resend email verification
-  Future<bool> sendVerificationEmail() async {
-    try {
-      final User? user = _auth.currentUser;
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification(_getActionCodeSettings()); // <-- FIX: Added ActionCodeSettings
-        return true;
-      }
-      return false;
-    } catch (e) {
-      debugPrint('sendVerificationEmail error: $e');
-      return false;
-    }
-  }
-
-  // Reload user and check if email is verified
-  Future<bool> reloadAndCheckEmailVerified() async {
-    try {
-      final User? user = _auth.currentUser;
-      if (user == null) return false;
-      await user.reload();
-      return _auth.currentUser?.emailVerified ?? false;
-    } catch (e) {
-      debugPrint('reloadAndCheckEmailVerified error: $e');
-      return false;
-    }
-  }
-
-  // Sign in with email and password
-  Future<Map<String, dynamic>> signInWithEmailAndPassword(String email, String password) async {
+  Future<User?> signInWithEmail(String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(email: email, password: password);
-      User? user = result.user;
-      
-      if (user != null) {
-        // Check if email is verified
-        if (!user.emailVerified) {
-          return {
-            'success': false,
-            'error': 'Please verify your email before signing in. Check your inbox for a verification link.',
-            'needsVerification': true,
-            'user': user,
-          };
-        }
-        
-        return {
-          'success': true,
-          'user': user,
-          'error': null,
-        };
+      if (result.user != null && !result.user!.emailVerified) {
+         // Optionally prompt the user to check their email
+         debugPrint("Email not verified.");
       }
-      
-      return {
-        'success': false,
-        'error': 'Login failed. Please try again.',
-        'user': null,
-      };
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'user-not-found':
-          errorMessage = 'No user found with this email address.';
-          break;
-        case 'wrong-password':
-          errorMessage = 'Incorrect password. Please try again.';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Invalid email address.';
-          break;
-        case 'user-disabled':
-          errorMessage = 'This account has been disabled.';
-          break;
-        case 'too-many-requests':
-          errorMessage = 'Too many failed attempts. Please try again later.';
-          break;
-        default:
-          errorMessage = e.message ?? 'Login failed. Please try again.';
-      }
-      
-      debugPrint('signInWithEmailAndPassword error: ${e.message}');
-      return {
-        'success': false,
-        'error': errorMessage,
-        'user': null,
-      };
+      return result.user;
     } catch (e) {
-      debugPrint('signInWithEmailAndPassword error: $e');
-      return {
-        'success': false,
-        'error': 'An unexpected error occurred. Please try again.',
-        'user': null,
-      };
+      debugPrint("Email Sign-In Error: $e");
+      return null;
     }
   }
 
-  // Send password reset email
-  Future<bool> sendPasswordResetEmail(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(
-        email: email,
-        actionCodeSettings: _getActionCodeSettings(),
-      );
-      return true;
-    } on FirebaseAuthException catch (e) {
-      debugPrint('sendPasswordResetEmail error: ${e.message}');
-      return false;
-    } catch (e) {
-      debugPrint('sendPasswordResetEmail error: $e');
-      return false;
-    }
-  }
-
-  // Sign out
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    if (!kIsWeb) {
+      await _googleSignIn.signOut();
+    }
     await _auth.signOut();
   }
 
-  // Get the current user
-  User? getCurrentUser() {
-    return _auth.currentUser;
-  }
+  // --- Backend Profile Methods ---
 
-  // Sign in with Google
-  Future<User?> signInWithGoogle() async {
+  Future<Map<String, dynamic>> checkProfile() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return {'profileExists': false};
+    }
+
+    final token = await user.getIdToken();
+    final url = Uri.parse('$backendUrl/auth/check_profile/');
+    
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // The user canceled the sign-in
-        return null;
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
-      UserCredential result = await _auth.signInWithCredential(credential);
-      return result.user;
-    } on FirebaseAuthException catch (e) {
-      debugPrint('Google sign in error: ${e.message}');
-      return null;
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        // Handle server errors
+        return {'profileExists': false, 'error': 'Server error'};
+      }
     } catch (e) {
-      debugPrint('Google sign in error: $e');
-      return null;
+      // Handle network errors
+      return {'profileExists': false, 'error': 'Network error'};
     }
   }
-  Future<String?> getToken() async{
-    String? token = await _auth.currentUser?.getIdToken();
-    return token;
+
+  Future<bool> createProfile(Map<String, dynamic> profileData) async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    final token = await user.getIdToken();
+    final url = Uri.parse('$BaseApiUrl/auth/signup/');
+
+    // Add token and default name to the body
+    profileData['token'] = token;
+    profileData['name'] = user.displayName ?? profileData['name'] ?? 'No Name';
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(profileData),
+      );
+      // 201 Created or 200 OK (if user already existed, which shouldn't happen in this flow)
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      debugPrint("Create Profile Error: $e");
+      return false;
+    }
   }
-  Future<void> logout()async{
-    _auth.signOut();
+
+  Future<String?> getToken() async {
+    final token = await _auth.currentUser?.getIdToken();
+    return token;
   }
 }

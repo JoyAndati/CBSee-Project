@@ -167,7 +167,7 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
   
   // *** NEW: Logout Functionality ***
   Future<void> _logout() async {
-    await _authService.logout();
+    await _authService.signOut();
     // Navigate to login screen and remove all previous routes from the stack
     if (mounted) {
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (Route<dynamic> route) => false);
