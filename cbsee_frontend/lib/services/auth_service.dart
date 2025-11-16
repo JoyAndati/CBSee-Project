@@ -194,7 +194,7 @@ class AuthService {
     }
   }
   Future<String?> getToken() async{
-    String? token = await _auth.currentUser?.getIdToken();
+    String? token = await _auth.currentUser?.getIdToken(true);
     return token;
   }
   Future<void> logout()async{
