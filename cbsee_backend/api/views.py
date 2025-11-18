@@ -63,6 +63,11 @@ class ClassificationView(APIView):
                 student = Student.objects.get(StudentID=uid)
                 if prediction:
                     # get the object
+                    if prediction == "Unknown":
+                        return Response(
+                            {'prediction': 'Unknown', 'description': 'Failed to process the image. Please adjust the lighting and try again.'}, 
+                            status=status.HTTP_200_OK
+                        )
                     obj = Object.objects.get(ObjectName=prediction)
                     objRecognized = ObjectRecognized.objects.create(Student=student, Object=obj)
 
