@@ -58,7 +58,7 @@ class ClassificationView(APIView):
                 image = serializer.validated_data['image']
                 
                 # Get prediction from our ML service
-                prediction = classifier_instance.predict(image)
+                prediction, conf = classifier_instance.predict(image)
                 print(prediction)
                 student = Student.objects.get(StudentID=uid)
                 if prediction:
