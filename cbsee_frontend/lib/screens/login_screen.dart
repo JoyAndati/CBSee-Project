@@ -28,8 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login failed. Please check your credentials.')),
       );
+      return;
     }
-    // On success, the AuthGate will automatically handle navigation.
+    // Ensure we rebuild AuthGate so it can route the user appropriately.
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
   @override

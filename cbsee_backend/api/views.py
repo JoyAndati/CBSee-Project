@@ -196,10 +196,12 @@ def check_profile(request):
     
     # Check if a Teacher profile exists
     if Teacher.objects.filter(TeacherID=uid).exists():
+        print('Teacher exists')
         return Response({'profileExists': True, 'userType': 'teacher'}, status=status.HTTP_200_OK)
     
     # Check if a Student profile exists
     if Student.objects.filter(StudentID=uid).exists():
+        print('Student exists')
         return Response({'profileExists': True, 'userType': 'student'}, status=status.HTTP_200_OK)
         
     # If no profile is found

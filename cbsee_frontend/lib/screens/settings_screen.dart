@@ -39,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _authService.signOut();
     // Navigate to login screen and remove all previous routes from the stack
     if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (Route<dynamic> route) => false);
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
     }
   }
 

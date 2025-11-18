@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 // 🔥 IMPORTANT: Replace with your actual backend URL
-const String backendUrl = "http://192.168.100.9:8000/api/v1"; // Use 10.0.2.2 for Android emulator
+const String backendUrl = "http://192.168.100.44:8000/api/v1"; // Use 10.0.2.2 for Android emulator
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -14,6 +14,9 @@ class AuthService {
 
   // --- Firebase Authentication Methods ---
 
+  getAuth(){
+    return _auth;
+  }
   Future<User?> signInWithGoogle() async {
     try {
       // Use popup/redirect for web, native flow for mobile
@@ -88,6 +91,7 @@ class AuthService {
          // Optionally prompt the user to check their email
          debugPrint("Email not verified.");
       }
+      debugPrint("Logged in");
       return result.user;
     } catch (e) {
       debugPrint("Email Sign-In Error: $e");

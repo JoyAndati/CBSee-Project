@@ -6,6 +6,7 @@ import 'screens/discoveries_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/create_profile_screen.dart';
 import 'screens/teacher_dashboard_screen.dart'; // Ensure this screen exists
+import 'services/auth_service.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -13,13 +14,16 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
+      
       stream: FirebaseAuth.instance.authStateChanges(),
+      // stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         // User is not signed in
         if (!snapshot.hasData) {
+          print("auth has no data");
           return const LoginScreen();
         }
-
+        print("has data");
         // User is signed in, now check if they have a profile on our backend
         return FutureBuilder<Map<String, dynamic>>(
           future: AuthService().checkProfile(),

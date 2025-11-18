@@ -30,9 +30,9 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.green,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // AuthGate is now the main entry point for your app's UI
-      home: const AuthGate(), 
+      initialRoute: '/',
       routes: {
+        '/': (context) => const AuthGate(),
         // These routes are still useful for navigation *after* login
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
