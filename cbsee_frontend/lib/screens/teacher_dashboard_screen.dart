@@ -1,21 +1,18 @@
 import 'dart:convert';
-import 'dart:math'; // Imported to generate random data for the UI
 import 'package:cbsee_frontend/services/auth_service.dart';
 import 'package:cbsee_frontend/utils/config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:cbsee_frontend/screens/student_progress_screen.dart'; 
+import 'package:cbsee_frontend/screens/student_progress_screen.dart';
 
-// Model for Student data (Unchanged)
+// Model for Student data
 class Student {
   final String studentID;
   final String name;
   final String gradeLevel;
-
-  // Added for UI design purposes to match the image
   final String lastActive;
   final int objectsFound;
-  final String avatarUrl; // To hold placeholder avatar URLs
+  final String avatarUrl;
 
   Student({
     required this.studentID,
@@ -27,29 +24,13 @@ class Student {
   });
 
   factory Student.fromJson(Map<String, dynamic> json) {
-    // Generate random data to match the design's variety
-    final random = Random();
-    final lastActiveStatus = [
-      '2 hours ago',
-      'Yesterday',
-      '3 days ago',
-    ];
-    final avatars = [
-      'https://i.pravatar.cc/150?img=1',
-      'https://i.pravatar.cc/150?img=5',
-      'https://i.pravatar.cc/150?img=8',
-      'https://i.pravatar.cc/150?img=12',
-      'https://i.pravatar.cc/150?img=32',
-    ];
-
     return Student(
       studentID: json['StudentID'],
       name: json['Name'],
       gradeLevel: json['GradeLevel'],
-      // --- UI Mock Data ---
-      lastActive: lastActiveStatus[random.nextInt(lastActiveStatus.length)],
-      objectsFound: random.nextBool() ? random.nextInt(10) : 0,
-      avatarUrl: avatars[random.nextInt(avatars.length)],
+      lastActive: json['lastActive'] ?? 'Never',
+      objectsFound: json['objectsFound'] ?? 0,
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/png?seed=${json['StudentID']}',
     );
   }
 }
@@ -73,9 +54,10 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
     _fetchDashboardData();
   }
 
-  // --- Data Fetching and Management (Unchanged) ---
   Future<void> _fetchDashboardData() async {
     String? token = await _authService.getToken();
+    if (token == null) return;
+    
     const String url = '$BaseApiUrl/dashboard/';
 
     try {
@@ -85,21 +67,21 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body)['students'];
-        _name = json.decode(response.body)['name'];
-        setState(() {
-          _students = data.map((json) => Student.fromJson(json)).toList();
-          _isLoading = false;
-        });
+        final data = json.decode(response.body);
+        final List<dynamic> studentsList = data['students'];
+        _name = data['name'];
+        if(mounted) {
+          setState(() {
+            _students = studentsList.map((json) => Student.fromJson(json)).toList();
+            _isLoading = false;
+          });
+        }
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        if(mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if(mounted) setState(() => _isLoading = false);
+      print("Error fetching dashboard: $e");
     }
   }
 
@@ -157,29 +139,26 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
 
       if (response.statusCode == 201) {
         _fetchDashboardData();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student Added!')));
       } else {
-        // Handle error
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add student (Check email)')));
       }
     } catch (e) {
-      // Handle exception
+      print(e);
     }
   }
   
-  // *** NEW: Logout Functionality ***
   Future<void> _logout() async {
     await _authService.signOut();
-    // Navigate to login screen and remove all previous routes from the stack
     if (mounted) {
       Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
     }
   }
 
-
-  // --- UI Build Method (Updated) ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F7E9), // Light green background
+      backgroundColor: const Color(0xFFE9F7E9),
       body: SafeArea(
         child: Column(
           children: [
@@ -187,7 +166,9 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
+                  : _students.isEmpty 
+                    ? const Center(child: Text("No students yet. Add one!"))
+                    : ListView.builder(
                       padding: const EdgeInsets.only(top: 10),
                       itemCount: _students.length,
                       itemBuilder: (context, index) {
@@ -201,16 +182,13 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddStudentModal,
-        backgroundColor: const Color(0xFF28A745), // Vibrant green
+        backgroundColor: const Color(0xFF28A745),
         foregroundColor: Colors.white,
         child: const Icon(Icons.add, size: 28),
       ),
     );
   }
 
-  // --- Custom Widgets for the New Design ---
-
-  // *** UPDATED: Custom App Bar with Logout Button ***
   Widget _buildCustomAppBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -220,7 +198,7 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
           const Text(
             'My Classroom',
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Color(0xFF333333),
             ),
@@ -228,19 +206,13 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
           Row(
             children: [
               Text(
-                _name??'Loading',
-                style: TextStyle(
+                _name ?? 'Teacher',
+                style: const TextStyle(
                   fontSize: 16,
                   color: Color(0xFF555555),
                 ),
               ),
               const SizedBox(width: 12),
-              CircleAvatar(
-                backgroundColor: const Color(0xFFC4A484),
-                child: Image.network('https://i.pravatar.cc/150?img=11', errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, color: Colors.white)),
-              ),
-              const SizedBox(width: 8),
-              // --- LOGOUT BUTTON ADDED HERE ---
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.redAccent, size: 26),
                 onPressed: _logout,
@@ -258,7 +230,6 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: GestureDetector(
          onTap: () {
-          // --- NAVIGATION LOGIC ---
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -266,8 +237,7 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
             ),
           );
         },
-        
-        child:Container(
+        child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -286,11 +256,12 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: const Color(0xFF28A745), // Green border
+                backgroundColor: const Color(0xFF28A745),
                 child: CircleAvatar(
                   radius: 27,
                   backgroundImage: NetworkImage(student.avatarUrl),
-                  onBackgroundImageError: (exception, stackTrace) {}, // Handle image load error
+                  onBackgroundImageError: (_, __) {},
+                  child: const Icon(Icons.person),
                 ),
               ),
               const SizedBox(width: 16),
@@ -300,41 +271,28 @@ class _MyClassroomScreenState extends State<MyClassroomScreen> {
                   children: [
                     Text(
                       student.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Grade ${student.gradeLevel}',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
+                      student.gradeLevel,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(height: 4),
                     if (student.objectsFound > 0)
                       Text(
-                        'Objects Found Today: ${student.objectsFound}',
-                        style: const TextStyle(
-                          color: Color(0xFF28A745),
-                          fontWeight: FontWeight.w500,
-                        ),
+                        'Found Today: ${student.objectsFound}',
+                        style: const TextStyle(color: Color(0xFF28A745), fontWeight: FontWeight.w600),
                       )
                     else
                       Text(
-                        'Last Active: ${student.lastActive}',
-                        style: const TextStyle(color: Colors.grey),
+                        'Active: ${student.lastActive}',
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.grey,
-                size: 18,
-              ),
+              const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 18),
             ],
           ),
         ),

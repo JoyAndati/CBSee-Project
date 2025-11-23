@@ -5,40 +5,31 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-// 🔥 IMPORTANT: Replace with your actual backend URL
-const String backendUrl = "http://192.168.100.44:8000/api/v1"; // Use 10.0.2.2 for Android emulator
-
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // --- Firebase Authentication Methods ---
-
-  getAuth(){
+  FirebaseAuth getAuth() {
     return _auth;
   }
+
+  // Handles both Login and Signup for Google
   Future<User?> signInWithGoogle() async {
     try {
-      // Use popup/redirect for web, native flow for mobile
       if (kIsWeb) {
-        // Web: Use signInWithPopup
         GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        
         try {
-          // Try popup first (better UX)
           final UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
           return userCredential.user;
         } catch (e) {
-          // If popup fails (blocked), fall back to redirect
-          debugPrint("Popup blocked, using redirect: $e");
+          debugPrint("Popup blocked or failed, trying redirect: $e");
           await _auth.signInWithRedirect(googleProvider);
-          // Note: After redirect, user will return to app and we get result via getRedirectResult
           return null;
         }
       } else {
-        // Mobile/Desktop: Use native Google Sign-In
+        // Mobile flow
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-        if (googleUser == null) return null; // User canceled the sign-in
+        if (googleUser == null) return null; // User cancelled
         
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
         final AuthCredential credential = GoogleAuthProvider.credential(
@@ -50,23 +41,9 @@ class AuthService {
         return userCredential.user;
       }
     } catch (e) {
-      debugPrint("Google Sign-In Error: $e");
+      debugPrint("Google Auth Error: $e");
       return null;
     }
-  }
-
-  // Call this method on web app initialization to handle redirect result
-  Future<User?> checkRedirectResult() async {
-    if (kIsWeb) {
-      try {
-        final UserCredential? userCredential = await _auth.getRedirectResult();
-        return userCredential?.user;
-      } catch (e) {
-        debugPrint("Redirect Result Error: $e");
-        return null;
-      }
-    }
-    return null;
   }
 
   Future<User?> signUpWithEmail(String email, String password, String name) async {
@@ -75,7 +52,6 @@ class AuthService {
       User? user = result.user;
       if (user != null) {
         await user.updateDisplayName(name);
-        await user.sendEmailVerification(); // Firebase handles this now
       }
       return user;
     } catch (e) {
@@ -87,11 +63,6 @@ class AuthService {
   Future<User?> signInWithEmail(String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(email: email, password: password);
-      if (result.user != null && !result.user!.emailVerified) {
-         // Optionally prompt the user to check their email
-         debugPrint("Email not verified.");
-      }
-      debugPrint("Logged in");
       return result.user;
     } catch (e) {
       debugPrint("Email Sign-In Error: $e");
@@ -100,10 +71,14 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    if (!kIsWeb) {
-      await _googleSignIn.signOut();
+    try {
+      if (!kIsWeb) {
+        await _googleSignIn.signOut();
+      }
+      await _auth.signOut();
+    } catch (e) {
+      print("Sign out error: $e");
     }
-    await _auth.signOut();
   }
 
   // --- Backend Profile Methods ---
@@ -115,7 +90,7 @@ class AuthService {
     }
 
     final token = await user.getIdToken();
-    final url = Uri.parse('$backendUrl/auth/check_profile/');
+    final url = Uri.parse('$BaseApiUrl/auth/check_profile/');
     
     try {
       final response = await http.get(
@@ -129,11 +104,10 @@ class AuthService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        // Handle server errors
         return {'profileExists': false, 'error': 'Server error'};
       }
     } catch (e) {
-      // Handle network errors
+      print("Check Profile Network Error: $e");
       return {'profileExists': false, 'error': 'Network error'};
     }
   }
@@ -145,17 +119,22 @@ class AuthService {
     final token = await user.getIdToken();
     final url = Uri.parse('$BaseApiUrl/auth/signup/');
 
-    // Add token and default name to the body
     profileData['token'] = token;
-    profileData['name'] = user.displayName ?? profileData['name'] ?? 'No Name';
+    
+    if (profileData['name'] == null || profileData['name'].isEmpty) {
+      profileData['name'] = user.displayName ?? 'Unknown User';
+    }
 
     try {
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token' 
+        },
         body: jsonEncode(profileData),
       );
-      // 201 Created or 200 OK (if user already existed, which shouldn't happen in this flow)
+      
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
       debugPrint("Create Profile Error: $e");

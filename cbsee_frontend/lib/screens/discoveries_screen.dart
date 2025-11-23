@@ -1,13 +1,10 @@
 import 'dart:convert';
-
 import 'package:cbsee_frontend/utils/config.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/discovery_item.dart';
 
-// --- Constants ---
 const Color primaryGreen = Color(0xFF1E5631);
 const Color lightBackground = Color(0xFFF9F9F7);
 
@@ -19,75 +16,43 @@ class DiscoveriesScreen extends StatefulWidget {
 }
 
 class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProviderStateMixin {
-  // --- UI Controllers ---
   TabController? _tabController;
   final TextEditingController _searchController = TextEditingController();
 
-  // --- State Management ---
   bool _isLoading = true;
   String? _errorMessage;
   List<DiscoveryItem> _allDiscoveries = [];
   List<DiscoveryItem> _filteredDiscoveries = [];
   List<String> _categories = ['All'];
 
-  // --- API Configuration ---
-  User? _user;
-  String? _authToken;
-  final String _apiUrl = kIsWeb 
-    ? "http://localhost:8000/api/v1/discoveries/" 
-    : "$BaseApiUrl/discoveries/";
-    
-  bool _initializedFromArgs = false;
-
+  // Using the global config for URL
+  final String _apiUrl = "$BaseApiUrl/discoveries/";
+  
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 1, vsync: this);
     _searchController.addListener(_filterDiscoveries);
-    _tabController?.addListener(_filterDiscoveries);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_initializedFromArgs) return;
-    final args = ModalRoute.of(context)!.settings.arguments as Map?;
-    final userArg = args?['user'];
-    if (userArg is User) {
-      _user = userArg;
-      _initializedFromArgs = true;
-      _initializeTokenAndFetch();
-    }
-  }
-
-  Future<void> _initializeTokenAndFetch() async {
-    try {
-      final token = await _user?.getIdToken();
-      if (!mounted) return;
-      setState(() {
-        _authToken = token;
-      });
-      await _fetchDiscoveries();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Failed to acquire auth token: $e';
-      });
-    }
+    // Fetch immediately
+    _fetchDiscoveries();
   }
 
   Future<void> _fetchDiscoveries() async {
-    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-    final authToken = _authToken;
+
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("Not logged in");
+      
+      final token = await user.getIdToken();
+      
       final response = await http.get(
         Uri.parse(_apiUrl),
         headers: {
-          if (authToken != null && authToken.isNotEmpty) 'Authorization': 'Bearer $authToken',
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       );
@@ -96,13 +61,11 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
         final List<dynamic> data = jsonDecode(response.body);
         final List<DiscoveryItem> items = data.map((json) => DiscoveryItem.fromJson(json)).toList();
         
-        // Generate categories dynamically from the fetched items
         final Set<String> uniqueCategories = {'All', ...items.map((item) => item.category)};
         final List<String> newCategories = uniqueCategories.toList();
         
         if (!mounted) return;
         
-        // Dispose old controller and create new one
         _tabController?.dispose();
         _tabController = TabController(length: newCategories.length, vsync: this);
         _tabController?.addListener(_filterDiscoveries);
@@ -117,7 +80,7 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = "An error occurred: ${e.toString()}");
+      setState(() => _errorMessage = "Could not load data: ${e.toString()}");
     } finally {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -151,10 +114,11 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
     return Scaffold(
       backgroundColor: lightBackground,
       appBar: AppBar(
-        title: const Text('CBSee', style: TextStyle(color: primaryGreen, fontWeight: FontWeight.bold, fontSize: 24)),
+        title: const Text('My Collection', style: TextStyle(color: primaryGreen, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: const IconThemeData(color: primaryGreen),
       ),
       body: SafeArea(
         child: Padding(
@@ -180,24 +144,20 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
     }
     if (_errorMessage != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 50),
-              const SizedBox(height: 16),
-              Text('Failed to load discoveries', style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 8),
-              Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _fetchDiscoveries,
-                style: ElevatedButton.styleFrom(backgroundColor: primaryGreen),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 50),
+            const SizedBox(height: 16),
+            Text('Oops!', style: Theme.of(context).textTheme.headlineSmall),
+            Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _fetchDiscoveries,
+              style: ElevatedButton.styleFrom(backgroundColor: primaryGreen),
+              child: const Text('Try Again'),
+            ),
+          ],
         ),
       );
     }
@@ -223,7 +183,7 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
       children: [
         Text('My Discoveries', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87)),
         SizedBox(height: 4),
-        Text('View your past discoveries and progress.', style: TextStyle(fontSize: 16, color: Colors.black54)),
+        Text('Everything you have found so far.', style: TextStyle(fontSize: 16, color: Colors.black54)),
       ],
     );
   }
@@ -235,27 +195,12 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search your discoveries...',
+              hintText: 'Search...',
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: () { /* TODO: Implement sort/filter logic */ },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
-              child: const Icon(Icons.filter_list, color: primaryGreen),
             ),
           ),
         ),
@@ -264,9 +209,7 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
   }
 
   Widget _buildTabBar() {
-    if (_tabController == null) {
-      return const SizedBox.shrink();
-    }
+    if (_tabController == null) return const SizedBox.shrink();
     return TabBar(
       controller: _tabController,
       tabs: _categories.map((category) => Tab(text: category)).toList(),
@@ -279,15 +222,13 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> with TickerProvid
   }
 
   Widget _buildTabBarView() {
-    if (_tabController == null) {
-      return const SizedBox.shrink();
-    }
+    if (_tabController == null) return const SizedBox.shrink();
     return TabBarView(
       controller: _tabController,
       children: _categories.map((_) {
         if (_filteredDiscoveries.isEmpty) {
           return const Center(
-            child: Text('No discoveries match your search.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+            child: Text('No matches.', style: TextStyle(color: Colors.grey, fontSize: 16)),
           );
         }
         return DiscoveryGrid(items: _filteredDiscoveries);
@@ -329,37 +270,24 @@ class DiscoveryCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (item.imageUrl.isNotEmpty)
-            Image.network(
-              item.imageUrl,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
-                return progress == null ? child : const Center(child: CircularProgressIndicator(color: primaryGreen));
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.broken_image, color: Colors.grey, size: 40);
-              },
-            )
-          else
-            Container(color: Colors.grey.shade300, child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 40)),
+          Image.network(
+            item.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(color: Colors.grey[300], child: const Icon(Icons.image, size: 50));
+            },
+          ),
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Colors.black.withOpacity(0.7), Colors.transparent],
-                ),
-              ),
+              padding: const EdgeInsets.all(8),
+              color: Colors.black54,
               child: Text(
                 item.name,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
               ),
             ),
           )
@@ -368,11 +296,3 @@ class DiscoveryCard extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-

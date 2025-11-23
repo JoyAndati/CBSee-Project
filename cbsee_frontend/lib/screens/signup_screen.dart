@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/auth_service.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
@@ -19,7 +20,6 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
 
   void _signUp() async {
-    // Basic validation
     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
@@ -31,18 +31,38 @@ class _SignupScreenState extends State<SignupScreen> {
       _passwordController.text,
       _nameController.text.trim(),
     );
+    
     if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (user != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created! Please check your email to verify.')),
+        const SnackBar(content: Text('Account created! Logging in...')),
       );
-      // The AuthGate will now see the new user and navigate to CreateProfileScreen
+      // AuthGate handles the rest
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign up failed. The email might be in use or invalid.')),
+        const SnackBar(content: Text('Sign up failed. Email might be in use.')),
       );
+    }
+  }
+
+  Future<void> _signUpWithGoogle() async {
+    setState(() => _isLoading = true);
+    final user = await _authService.signInWithGoogle();
+    
+    if (!mounted) return;
+    
+    if (user != null) {
+      // Success: AuthGate will detect user and redirect to CreateProfileScreen if needed
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    } else {
+      setState(() => _isLoading = false);
+      // User likely cancelled the popup
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(content: Text('Google Sign Up cancelled.')),
+      // );
     }
   }
 
@@ -59,15 +79,40 @@ class _SignupScreenState extends State<SignupScreen> {
               children: [
                 const Text('Join CBSee', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: secondaryColor)),
                 const SizedBox(height: 40),
+                
                 CustomTextField(controller: _nameController, hintText: 'Full Name', icon: Icons.person_outline),
                 CustomTextField(controller: _emailController, hintText: 'Email Address', icon: Icons.email_outlined),
                 CustomTextField(controller: _passwordController, hintText: 'Password', icon: Icons.lock_outline, isPassword: true),
+                
                 const SizedBox(height: 20),
                 CustomButton(
                   text: _isLoading ? 'Creating account...' : 'Sign Up',
                   onPressed: _isLoading ? null : _signUp,
                 ),
+                
                 const SizedBox(height: 20),
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('OR')),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Google Signup Button
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _signUpWithGoogle,
+                  icon: const FaIcon(FontAwesomeIcons.google, color: Colors.white),
+                  label: const Text('Sign up with Google'),
+                  style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.red, // Google Red
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0))),
+                ),
+
+                const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
